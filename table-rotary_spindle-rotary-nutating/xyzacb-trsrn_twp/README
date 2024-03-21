@@ -1,0 +1,27 @@
+This is a simulation configuration for a 6 axis machine with the following kinematic:
+
+XYZ - linear cartesian
+  A - table rotary
+  C - spindle rotary
+  B - spindle nutating
+
+The spindle rotary assembly is fully configurable using sliders in the side panel of the gui
+
+The kinematic component includes the following modes:
+
+IDENTITY: Trivial kinematics with a one-to-one mapping of joints to axes 
+     TCP: Coordinated xyz motion with rotation around the tool center point
+    TOOL: Coordinated xyz motion in the current tool coordinate system
+
+This simulation also includes an experimental implementation of Gcodes for tilted workplane (TWP) functionality
+
+Full Documentation is included in html format. 
+
+
+IMPORTANT PREREQUISITS:
+
+Install the required kinematic component:
+halcompile --install <your-path-here>/xyzacb_trsrn.comp
+
+
+Place the file 'twp_vismach.py' into the folder 'lib\python'
