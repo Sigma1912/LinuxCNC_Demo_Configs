@@ -1,0 +1,4 @@
+- Follow the README in the folder 'qt_vismach patch files'
+- Follow the README in the folder 'gladevcp patch files'
+- Install the custom kinematic using 'halcompile --install <path to file>/xyzbu_st_man.comp'
+

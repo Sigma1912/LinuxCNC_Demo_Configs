@@ -1,0 +1,13 @@
+# connections for 'switchkins_panel' 
+
+net kinstype-is-0                                          => switchkins_panel.multilabel.legend0
+net kinstype-is-1                                          => switchkins_panel.multilabel.legend1
+net kinstype-is-2                                          => switchkins_panel.multilabel.legend2
+
+net buttons-enable     <= switchkins_panel.chck_btn        => switchkins_panel.tbl_buttons_enable
+
+net type0-button       <= switchkins_panel.type0-button    => halui.mdi-command-00
+net type2-button       <= switchkins_panel.type2-button    => halui.mdi-command-01
+
+net twp-inclination                                        => switchkins_panel.label-b-angle
+

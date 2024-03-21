@@ -1,0 +1,7 @@
+o<g69_with_quebuster>sub
+;quebuster to stop lookahead executing the python remap
+M66 L0 E0
+;run the actual python remap code
+G69.9
+o<g69_with_quebuster>endsub
+m2

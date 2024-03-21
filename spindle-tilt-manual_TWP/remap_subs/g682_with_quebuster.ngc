@@ -1,0 +1,28 @@
+o<g682_with_quebuster> sub
+(I is required since it is uppercase in the argspec)
+(the xyzr argspec is optional since its lowercase in the argspec. Use as follows:)
+
+o100 if [EXISTS[#<x>]]
+o100 else
+    #<x>=0
+o100 endif
+o101 if [EXISTS[#<y>]]
+o101 else
+    #<y>=0
+o101 endif
+o102 if [EXISTS[#<z>]]
+o102 else
+    #<z>=0
+o102 endif
+o103 if [EXISTS[#<r>]]
+o103 else
+    #<r>=0
+o103 endif
+
+; insert quebuster
+M66 L0 E0
+; call the actual python remap
+G68.9 I#<I> X#<x> Y#<y> Z#<z> R#<r>
+
+o<g682_with_quebuster> endsub
+M2

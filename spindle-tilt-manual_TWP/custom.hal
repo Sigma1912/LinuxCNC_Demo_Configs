@@ -1,0 +1,101 @@
+
+#***********************************************************************************************
+# ----- Handle any custom hal adjustments to Aciera_F5.hal for this configuration -----
+#***********************************************************************************************
+
+
+#*******************************************************************************
+#  SETUP SWAPPING OF LIMITS
+#*******************************************************************************
+
+loadrt not	names=not.kins
+addf not.kins                            			            servo-thread
+
+loadrt mux2 names=mux.limit_x_pos,mux.limit_x_neg,mux.limit_y_pos,mux.limit_y_neg,mux.limit_z_pos,mux.limit_z_neg
+addf mux.limit_x_neg 						                    servo-thread
+addf mux.limit_x_pos 						                    servo-thread
+addf mux.limit_y_neg 						                    servo-thread
+addf mux.limit_y_pos 						                    servo-thread
+addf mux.limit_z_neg 						                    servo-thread
+addf mux.limit_z_pos 						                    servo-thread
+
+
+#  ---switch limits between kinematics---
+#  Note: Since the ini. pins do not exist until the gui is loaded
+#        ini.(x,y,z).(min,max_limit) pins are set in "custom_postgui.hal !
+
+net kinstype-is-2 			=> not.kins.in
+net kinematic-triv	        <= not.kins.out
+net kinstype-is-2			=> mux.limit_x_pos.sel 	=> mux.limit_x_neg.sel
+net kinstype-is-2			=> mux.limit_y_pos.sel 	=> mux.limit_y_neg.sel
+net kinstype-is-2			=> mux.limit_z_pos.sel 	=> mux.limit_z_neg.sel
+
+setp    mux.limit_x_pos.in0     [AXIS_X]MAX_LIMIT
+setp 	mux.limit_x_pos.in1		999999
+setp    mux.limit_x_neg.in0     [AXIS_X]MIN_LIMIT
+setp 	mux.limit_x_neg.in1		-99999
+net limit-x-pos-set      		<= mux.limit_x_pos.out
+net limit-x-neg-set      		<= mux.limit_x_neg.out
+
+setp    mux.limit_y_pos.in0     [AXIS_Y]MAX_LIMIT
+setp 	mux.limit_y_pos.in1		999999
+setp    mux.limit_y_neg.in0     [AXIS_Y]MIN_LIMIT
+setp 	mux.limit_y_neg.in1		-999999
+net limit-y-pos-set      		<= mux.limit_y_pos.out
+net limit-y-neg-set      		<= mux.limit_y_neg.out
+
+setp    mux.limit_z_pos.in0     [AXIS_Z]MAX_LIMIT
+setp 	mux.limit_z_pos.in1		999999
+setp    mux.limit_z_neg.in0     [AXIS_Z]MIN_LIMIT
+setp 	mux.limit_z_neg.in1		-999999
+net limit-z-pos-set      		<= mux.limit_z_pos.out
+net limit-z-neg-set      		<= mux.limit_z_neg.out
+
+#*******************************************************************************
+# TWP helper component connections
+#*******************************************************************************
+
+# load the helper component for the tilted work plane feature
+loadusr -W ./python/twp_helper_comp.py
+
+# connections to handle twp abort when changing to g54,g55,g56,g57 or g58 when twp is active
+# this also executes when m2/m30 are run since that will switch to default g54
+net twp-wrong-offset-active     <= twp_helper_comp.wrong-offset-with-twp-active     => halui.mdi-command-02
+
+# connections to update the work_offset in the vismach-gui using the custom user-component
+# NOTE: 'twp_helper_comp.b_angle_in' is set directly from the python remap
+net current-work-offset-index   <= twp_helper_comp.g5x-index            
+net current-work-offset-x       <= twp_helper_comp.g5x-x               
+net current-work-offset-y       <= twp_helper_comp.g5x-y               
+net current-work-offset-z       <= twp_helper_comp.g5x-z               
+net twp-inclination             <= twp_helper_comp.twp-i-out            
+net twp-rotation                <= twp_helper_comp.twp-r-out            
+net twp-is-active               <= twp_helper_comp.twp-is-active-out    
+net twp-origin-x                <= twp_helper_comp.twp-x-out
+net twp-origin-y                <= twp_helper_comp.twp-y-out
+net twp-origin-z                <= twp_helper_comp.twp-z-out
+net rel-position-x              <= twp_helper_comp.rel-position-x       
+net rel-position-y              <= twp_helper_comp.rel-position-y      
+net rel-position-z              <= twp_helper_comp.rel-position-z     
+net offset-index                <= twp_helper_comp.offset-index  
+net g52-g92-x                   <= twp_helper_comp.g52-g92-x     
+net g52-g92-y                   <= twp_helper_comp.g52-g92-y     
+net g52-g92-z                   <= twp_helper_comp.g52-g92-z 
+net pivot-z                                                     => twp_helper_comp.pivot-z-in
+net machine-is-on               <= halui.machine.is-on          => twp_helper_comp.machine-is-on 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

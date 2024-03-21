@@ -1,0 +1,17 @@
+#***********************************************************************************************
+# ----- Handle any custom hal adjustments to Aciera_F5_postgui.hal for this configuration -----
+#                                   !Do not delete this file!
+#         Leave this file empty if no adjustments are necessary for this configuration
+#***********************************************************************************************
+
+#  ---switch (x,y,z)-limits between kinematics---
+# ini. pins do not exist before the gui is loaded
+net limit-x-pos-set      <= mux.limit_x_pos.out   => ini.x.max_limit
+net limit-x-neg-set      <= mux.limit_x_neg.out   => ini.x.min_limit
+net limit-y-pos-set      <= mux.limit_y_pos.out   => ini.y.max_limit
+net limit-y-neg-set      <= mux.limit_y_neg.out   => ini.y.min_limit
+net limit-z-pos-set      <= mux.limit_z_pos.out   => ini.z.max_limit
+net limit-z-neg-set      <= mux.limit_z_neg.out   => ini.z.min_limit
+
+# connection to display the current G43 tool-length offset in the gmoccapy gui
+net tooloffset-z      <= motion.tooloffset.z                 => gmoccapy.tooloffset-z

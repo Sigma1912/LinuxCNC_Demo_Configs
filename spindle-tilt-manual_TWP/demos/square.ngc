@@ -1,0 +1,47 @@
+/ g0 x0 y0 z50
+;g10 l2 p0 x10 y-10z-100r4
+;g52 x100 y -100 z-20
+
+m6 t13 g43 h13
+m3 s2000
+f1200
+;g0 x0y0z50
+;g54
+g0 x0y0z10
+;g42
+f10000
+g0 x50 y50
+g1 z0
+g1 y-50
+g1 x-50
+g1 y50
+g1 x50
+g0 z10
+g0 x0y0
+g40
+;g69
+;g68.2 x120 z50  i45 r45
+;o<square_sub> call
+;g57
+;g52 x10
+m5
+m6 t14 g43 h14
+m3 s2000
+;g52 y-50
+g0 x0y0z50
+g41
+f10000
+g0 x50 y50
+g1 z0
+g1 y-50
+g1 x-50
+g1 y50
+g1 x50
+g0 z10
+g0 x0y0
+m5
+g40
+g69
+g52x0y0z0
+;g10 l2 p0 x100 y-100z-100r0
+m2

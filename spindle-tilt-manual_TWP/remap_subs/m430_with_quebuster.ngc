@@ -1,0 +1,15 @@
+o<m430_with_quebuster>sub
+;quebuster 
+M66 L0 E0
+;run the actual python remap code
+M440
+M66 L0 E0
+;the following lines are an effort to get rid of 
+;unexplainble behavior during the first g91 move
+;after a switch
+g91 g0 x0y0z0 
+g4 p1
+g90
+M66 L0 E0
+o<m430_with_quebuster>endsub
+m2

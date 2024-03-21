@@ -1,0 +1,15 @@
+%
+;g52 y-50
+g0x0 y0 z50
+; activate tool radius compensation
+g42
+; circular pocket
+g1 x25 f3000
+g2 i-25 z-20
+g2 i-25 z-40
+; deactivate tool radius compensation
+g40
+g1 x0 y0
+g0 z50
+;g52 y0
+%

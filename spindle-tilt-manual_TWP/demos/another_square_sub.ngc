@@ -1,0 +1,11 @@
+o<another_square_sub> sub
+g0x0y0z50
+g0x30y30z10
+g1z0
+g1 x-30
+g1 y-30
+g1 x30
+g1 y30
+g0 z10 
+o<anothersquare_sub> endsub
+M2
