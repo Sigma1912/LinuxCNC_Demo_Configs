@@ -398,9 +398,9 @@ class HalCoordsFromNormalAndDirection():
         self.q = gluNewQuadric()
 
 
-    def draw_vector(self, color):
+    def draw_vector(self, vector_color):
         gluCylinder(self.q, self.r, self.r, 50*self.stretch, 32, 1)
-        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, color)
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, vector_color)
  
     def draw(self):
         # check for zero values in the arguments
@@ -427,11 +427,11 @@ class HalCoordsFromNormalAndDirection():
         glPushMatrix()
         # for some reason we need to rotate in the opposite (transpose) sense
         glMultMatrixf(np.transpose(m))
-        self.draw_vector([1,0,0,1])
-        glRotate(90,0,1,0)
-        self.draw_vector([0,1,0,1])
-        glRotate(-90,1,0,0)
         self.draw_vector([0,0,1,1])
+        glRotate(90,0,1,0)
+        self.draw_vector([1,0,0,1])
+        glRotate(-90,1,0,0)
+        self.draw_vector([0,1,0,1])
 
     def unapply(self):
         glPopMatrix()
