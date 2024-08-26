@@ -1,0 +1,75 @@
+loadrt siggen         names=gen
+loadrt scale          names=scalea
+loadrt conv_float_s32 names=cvt
+loadrt not            names=nota
+loadrt or2            names=or2a,or2b
+loadrt weave          names=weave
+loadrt oneshot        names=oneshot
+
+
+addf   gen.update     servo-thread
+addf   scalea         servo-thread
+addf   cvt            servo-thread
+addf   nota           servo-thread
+addf   or2a           servo-thread
+addf   or2b           servo-thread
+addf   weave          servo-thread
+addf   oneshot        servo-thread
+
+setp gen.offset       0.0
+
+
+net x_pos_cmd     <= axis.x.pos-cmd     => weave.x-pos-cmd-new
+net y_pos_cmd     <= axis.y.pos-cmd     => weave.y-pos-cmd-new
+
+
+
+
+
+# scaling -----------------------------------------------------------
+# these should be reciprocals:
+# 1 unit (mm)  --> 10000 counts
+
+net x_offs_scale  <= weave.x-eo-scale   => axis.x.eoffset-scale
+net y_offs_scale  <= weave.y-eo-scale   => axis.y.eoffset-scale
+setp axis.z.eoffset-scale     0.0001
+
+setp scalea.gain          10000
+
+net motion_type    <= motion.motion-type  => weave.motion-type
+net distance_to_go <= motion.distance-to-go => weave.distance-to-go
+setp weave.enable 1   
+
+net  E:amplitude  <= pyvcp.gen-amplitude     => gen.amplitude
+net  E:frequency  <= pyvcp.gen-frequency     => gen.frequency
+
+# can also use sawtooth (others inappropriate on a reset)
+net  G:waveform         <= gen.sine                => scalea.in 
+net  G:swaveform        <= scalea.out              => cvt.in
+net  G:counts           <= cvt.out                 => axis.x.eoffset-counts      => axis.y.eoffset-counts => axis.z.eoffset-counts
+
+net enables => axis.x.eoffset-enable    => axis.y.eoffset-enable
+sets enables 1
+
+net enable_out          <= weave.enable-out    => nota.in    
+net enable_out_not      <= nota.out            => or2a.in0
+
+net  G:reset1     <= weave.siggen-reset     => or2a.in1 
+
+      
+net  G:reset2      <= or2a.out  => gen.reset     => axis.x.eoffset-clear     => axis.y.eoffset-clear
+           
+
+net  E:x-offset   <= axis.x.eoffset          => pyvcp.x-offset-f
+net  E:y-offset   <= axis.y.eoffset          => pyvcp.y-offset-f
+net  E:z-offset   <= axis.z.eoffset          => pyvcp.z-offset-f
+
+
+net  E:active    <= motion.eoffset-active  => pyvcp.eoffset-active
+
+net  E:ini-accel <= pyvcp.ini-accel          => ini.z.max_acceleration
+net  E:ini-vel   <= pyvcp.ini-vel            => ini.z.max_velocity
+
+
+
+

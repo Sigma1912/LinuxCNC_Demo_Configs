@@ -1,0 +1,72 @@
+component weave "LinuxCNC HAL component that applies a weave that is perpendicular to the toolpath";
+
+
+pin in bit enable;
+pin in s32 motion-type;
+pin in float distance-to-go;
+pin in float x-pos-cmd-new;
+pin in float y-pos-cmd-new;
+
+pin out bit enable-out;
+pin out bit siggen-reset;
+pin out float x-eo-scale;   
+pin out float y-eo-scale;
+
+
+
+variable float x_pos_cmd_delta;
+variable float y_pos_cmd_delta;
+variable float x_pos_cmd_prev;
+variable float y_pos_cmd_prev;
+variable float pos_cmd_length;
+
+
+
+include "rtapi_math.h";
+
+function _;
+
+license "GPL";
+author "David Mueller";
+
+;;
+int first_call = 1;
+
+
+FUNCTION(_) {
+    if (enable == 1 && ( motion_type == 2 || motion_type == 3 )) {
+        siggen_reset  = 0;
+        if (first_call == 1) {
+	    x_pos_cmd_prev = 0;
+     	    y_pos_cmd_prev = 0;
+            first_call = 0; 
+        }
+        // calculate the x and y components of the current tool path vector
+        x_pos_cmd_delta = x_pos_cmd_new - x_pos_cmd_prev;
+        y_pos_cmd_delta = y_pos_cmd_new - y_pos_cmd_prev; 
+
+        // calculate the length of the current pos_cmd vector
+        pos_cmd_length = sqrt(x_pos_cmd_delta * x_pos_cmd_delta + y_pos_cmd_delta * y_pos_cmd_delta);
+
+        // if the length value approaches zero we need to interfere to avoid divisions by zero
+        if ((pos_cmd_length <= 0.0000001) || (distance_to_go < 0.1)){
+            x_eo_scale = 0;
+            y_eo_scale = 0;
+            siggen_reset = 1;
+            //rtapi_print("SigGen reset----------------------------------\n"); 
+        } else {
+            // calculate the scale values for the external offsets 
+            // note: the direction of the weave is perpendicular to the path so the scale vector is 
+            // rotated by 90° to the tool path
+            x_eo_scale = -y_pos_cmd_delta / pos_cmd_length / 10000;
+            y_eo_scale =  x_pos_cmd_delta / pos_cmd_length / 10000;
+        }
+        enable_out = 1;
+        x_pos_cmd_prev = x_pos_cmd_new;
+        y_pos_cmd_prev = y_pos_cmd_new;
+    } else {
+        siggen_reset = 1;
+        enable_out = 0;
+    }
+    
+}
