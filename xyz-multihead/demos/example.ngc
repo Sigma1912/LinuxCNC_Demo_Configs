@@ -1,0 +1,38 @@
+G21 G54 G90 G64 P0.01 G92.1
+
+; set work offset
+G10 l2 p0 x500 y-250 z-150
+; set Z1
+M428
+; call tool for Z1
+M61 Q1 G43 H1 
+
+; run square
+G0 X0 Y0 Z50 
+o<square> call
+
+; set Z2
+M429
+; call tool for Z1
+M61 Q2 G43 H2 
+
+; run square
+G0 X0 Y0 Z50 
+o<square> call
+
+; set Z3
+M430
+; call tool for Z3
+M61 Q3 G43 H3 
+
+; run square
+G0 X0 Y0 Z50 
+o<square> call
+
+; set Z1
+M428
+; call tool for Z1
+M61 Q1 G43 H1 
+
+M2
+

@@ -1,0 +1,9 @@
+net :z1-button   <= pyvcp.z1-button   => halui.mdi-command-00
+net :z2-button   <= pyvcp.z2-button   => halui.mdi-command-01
+net :z3-button   <= pyvcp.z3-button   => halui.mdi-command-02
+
+net :kinstype.is-0 <= kinstype.is-0       => pyvcp.multilabel.0.legend0
+net :kinstype.is-1 <= kinstype.is-1       => pyvcp.multilabel.0.legend1
+net :kinstype.is-2 <= kinstype.is-2       => pyvcp.multilabel.0.legend2
+
+net :vismach-clear <= pyvcp.vismach-clear => vismach.plotclear

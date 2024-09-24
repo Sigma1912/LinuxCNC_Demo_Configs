@@ -1,0 +1,23 @@
+Simualation config of an XYZ machine with 3 machining heads.
+
+Uses switchable custom kinematics to map the Z-axis to joint-(2,3,4) respectively.
+
+Note: M128, M129 and M130 can be used to switch ini settings for the Z-axis 
+depending on the active kinematic. 
+
+
+
+
+To test:
+
+Install the custom kinematic component on a RIP installation:
+
+  halcompile --install <your-path>/xyz-multihead/xyz_multihead.comp 
+
+Install the custom kinematic component on a DEB installation:
+
+  sudo halcompile --install <your-path>/xyz-multihead/xyz_multihead.comp 
+
+
+
+Note 'halcompile' requires the 'linuxcnc-dev' package to be installed.
