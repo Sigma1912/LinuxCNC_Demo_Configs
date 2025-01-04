@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from twp_vismach import *
+from vismach import *
 import hal
 import math
 import sys
