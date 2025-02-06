@@ -50,4 +50,4 @@ G53.6 (P) : same as G53.1 but spindle orientation with tcp
 - The prioritized rotary can be set using the [TWP]PRIORITY value (1 or 2) in the ini file.
 
 Full Documentation can be found at:
-https://github.com/Sigma1912/LinuxCNC_Demo_Configs/tree/main/table-nutating-rotary/Documentation
+https://github.com/Sigma1912/LinuxCNC_Demo_Configs/tree/main/table-nutating-rotary/

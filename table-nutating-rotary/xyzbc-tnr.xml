@@ -5,7 +5,7 @@
     <relief>"ridge"</relief>
     <bd>5</bd>
     <multilabel>
-      <legends>["0:IDENTITY", "1: XYZBC  ", "2: TWP  "]</legends>
+      <legends>["0:IDENTITY", "1: TCP  ", "2: TWP  "]</legends>
       <font>("Helvetica",16)</font>
       <bg>"black"</bg>
       <fg>"yellow"</fg>
@@ -17,7 +17,7 @@
     </button>
     <button>
       <halpin>"type1-button"</halpin>
-      <text>"TCP:XYZBC"</text>
+      <text>"TCP"</text>
       <bd>3</bd>
     </button>
     <button>

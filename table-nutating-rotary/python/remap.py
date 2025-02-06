@@ -34,8 +34,8 @@ formatter = logging.Formatter('%(name)s %(levelname)s: %(message)s')
 handler.setFormatter(formatter)
 log.addHandler(handler)
 # Manually force the log level for this module
-#log.setLevel(logging.ERROR) # One of DEBUG, INFO, WARNING, ERROR, CRITICAL
-log.setLevel(logging.DEBUG) # One of DEBUG, INFO, WARNING, ERROR, CRITICAL
+log.setLevel(logging.ERROR) # One of DEBUG, INFO, WARNING, ERROR, CRITICAL
+#log.setLevel(logging.DEBUG) # One of DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 # set up parsing of the inifile
 import os
@@ -787,7 +787,15 @@ def g53x_core(self):
         possible_prim_sec_angle_pairs = kins_calc_jnt_angles(self, tool_z_requested, tool_x_requested)
     # An exception will occur if the requested tool orientation cannot be achieved with the kinematic at hand
     except Exception as error:
-        log.error('G53.x: Calculation of possible primary and secondary angle pairs failed, %s', error)
+        #log.error('G53.x: Calculation of possible primary and secondary angle pairs failed, %s', error)
+         # reset the twp parameters
+        reset_twp_params(self)
+        msg = ("G53.x ERROR: Requested tool orientation not reachable -> aborting G53.x")
+        log.debug(msg)
+        emccanon.CANON_ERROR(msg)
+        yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
+        yield INTERP_EXIT # w/o this the error does not abort a running gcode program
+        return INTERP_ERROR
 
     if len(possible_prim_sec_angle_pairs) == 0 :
         # reset the twp parameters
@@ -805,7 +813,6 @@ def g53x_core(self):
     except Exception as error:
         log.error('G53.x: Calculation of optimal joint move failed, %s', error)
     if theta_1 == None:
-
          # reset the twp parameters
         reset_twp_params(self)
         msg = ("G53.x ERROR: Requested tool orientation not reachable -> aborting G53.x")
