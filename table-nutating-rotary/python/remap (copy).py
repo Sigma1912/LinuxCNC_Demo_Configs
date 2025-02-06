@@ -1,8 +1,7 @@
 # This is a python remap for LinuxCNC implementing 'Tilted Work Plane'
 # G68.2, G68.3, G68.4 and related Gcodes G53.1, G53.3, G53.6, G69
-# for XYZBC and XYZAC work rotation kinematics
 #
-# Copyright ()c) 2025 David Mueller <mueller_david@hotmail.com>
+# Copyright ()c) 2023 David Mueller <mueller_david@hotmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -127,13 +126,10 @@ orient_mode = 0
 # NOTE: these matrices must be the same as the ones used to derive the kinematic model
 def kins_tool_transformation(theta_1, theta_2, post_rot, matrix_in, direction='fwd'):
     global joint_letter_primary, joint_letter_secondary
+
     global kins_nutation_angle
     T_in = matrix_in
-    # Note that on a real machine setup the x axis retains its orientation regardless of table-angle
-    # however in the kinematic model it rotates with the table angle hence we compensate this by
-    # subtracting the table_angle from the passed secondary angle as explained in the documentation
-    theta_2 = theta_2 - radians(hal.get_value(kins_table_angle))
-    # Define 4x4 transformation for virtual rotation around z to orient tool-x and -y
+    ## Define 4x4 transformation for virtual rotation around tool-z to orient tool-x and -y
     Swc = sin(post_rot)
     Cwc = cos(post_rot)
     Rwc=np.matrix([[ Cwc, -Swc, 0, 0],
@@ -231,8 +227,9 @@ def kins_calc_secondary(self, tool_z_req, tool_x_req, theta_1_list):
     (Kzx, Kzy, Kzz) = (tool_z_req[0], tool_z_req[1], tool_z_req[2])
     (Kxx, Kxy, Kxz) = (tool_x_req[0], tool_x_req[1], tool_x_req[2])
     log.debug('Calculating possible secondary angles.')
-    u = radians(hal.get_value(kins_table_angle))
+
     if (joint_letter_primary, joint_letter_secondary)== ('B', 'C'):
+
         u = radians(hal.get_value(kins_table_angle))
         Su = sin(u)
         Cu = cos(u)
@@ -268,7 +265,7 @@ def kins_calc_secondary(self, tool_z_req, tool_x_req, theta_1_list):
                                         degrees(theta), secondary_min_limit, secondary_max_limit)
                             if theta > secondary_min_limit and theta < secondary_max_limit:
                                 log.debug('Adding %s to valid angles list.', degrees(theta))
-                                theta_2_list.append(theta + u)
+                                theta_2_list.append(theta)
             log.debug('List of possible secondary angles: %s\n',  theta_2_list)
     else:
         log.error('No formula for this spindle kinematic (primary, secondary) %s', (joint_letter_primary, joint_letter_secondary))
@@ -440,8 +437,10 @@ def calc_rotary_move_with_joint_limits(position, target, max_limit, min_limit, m
     return theta, dist
 
 # this takes a list of joint angle pairs in [-pi,pi] and optimizes them for shortest moves
+
 # in (min_limit, max_linit) from the current joint positions using the orient_mode set by
 # the operator: 0=shortest (default), 1=positive rotation only, 2=negative rotation only
+
 def calc_angle_pairs_and_distances(self, possible_prim_sec_angle_pairs):
     global primary_min_limit, primary_max_limit, secondary_min_limit, secondary_max_limit
     global orient_mode
@@ -468,6 +467,7 @@ def calc_angle_pairs_and_distances(self, possible_prim_sec_angle_pairs):
 
 # find the optimal joint move from current to target positions in the list
 # for this we look at the primary joint move only
+
 # orient_mode is 0=shortest, 1=positive rotation only, 2=negative rotation only
 # For orient_mode=(1,2): If no move can be found within joint limits we return None
 def calc_optimal_joint_move(self, possible_prim_sec_angle_pairs):
@@ -728,7 +728,9 @@ def reset_twp_params(self):
 # because we need self.execute() to switch the WCS properly this remap needs to be called from
 # an ngc reamp that contains a quebuster before calling this code
 # IMPORTANT:
+
 # The correct kinematic mode (ie TCP for 53.1 / IDENTITY for G53.6) must be active when this code is called
+
 # (ie do it in the ngc remap mentioned above!)
 def g53x_core(self):
     global saved_work_offset, twp_matrix, twp_flag, post_rot
@@ -785,12 +787,15 @@ def g53x_core(self):
         # calculate all possible pairs of (primary, secondary) angles so our tool-z vector matches the requested tool-z
         # angles are returned in [-pi,pi]
         possible_prim_sec_angle_pairs = kins_calc_jnt_angles(self, tool_z_requested, tool_x_requested)
-    # An exception will occur if the requested tool orientation cannot be achieved with the kinematic at hand
+    # An excepton will occur if the requested tool orientation cannot be achieved with the kinematic at hand
+
     except Exception as error:
         log.error('G53.x: Calculation of possible primary and secondary angle pairs failed, %s', error)
+        #possible_prim_sec_angle_pairs = []
 
     if len(possible_prim_sec_angle_pairs) == 0 :
-        # reset the twp parameters
+
+         # reset the twp parameters
         reset_twp_params(self)
         msg = "G53.x ERROR: Requested tool orientation not reachable -> aborting G53.x"
         log.debug(msg)
@@ -818,6 +823,35 @@ def g53x_core(self):
     # calculate the post-rotation needed so our tool-x vector matches the requested tool-x vector
     post_rot = kins_calc_post_rot(self, radians(theta_1), radians(theta_2), (1,0,0), twp_matrix)
     log.debug("Calculated post-rotation (post_rot) to match requested tool-x): %s", post_rot)
+    # since we have to compensate the table angle with the secondary joint we have to check for limit violations again
+    u = hal.get_value(kins_table_angle)
+    theta_2_compensated = theta_2 + u
+    # check if the table angle compensation violates secondary joint angle
+    if theta_2_compensated > secondary_min_limit and theta_2_compensated < secondary_max_limit:
+        log.debug('Setting theta_2 to compensate for table-angle to %s', theta_2_compensated)
+    else:
+        theta_2_compensated = theta_2 + u - np.sign(theta_2_compensated)*360
+        log.debug('Limit violation -> Setting theta_2 to compensate for table-angle to %s', theta_2_compensated)
+    # this returns one pair of optimized angles in degrees, or (None, None) if no solution could be found
+    try:
+        theta_1, theta_2 = calc_optimal_joint_move(self, [(radians(theta_1), radians(theta_2_compensated))])
+        theta_2 = theta_2 - u
+    except Exception as error:
+        log.error('G53.x: Calculation of optimal joint move failed, %s', error)
+    if theta_1 == None:
+
+         # reset the twp parameters
+        reset_twp_params(self)
+        msg = ("G53.x ERROR: Requested tool orientation not reachable -> aborting G53.x")
+        log.debug(msg)
+        emccanon.CANON_ERROR(msg)
+        yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
+        yield INTERP_EXIT # w/o this the error does not abort a running gcode program
+        return INTERP_ERROR
+    theta_1 = radians(theta_1)
+    theta_2 = radians(theta_2)
+
+
 
     # mark twp-flag as active
     twp_flag = [0, 'active']
@@ -825,10 +859,10 @@ def g53x_core(self):
     gui_update_twp(self)
     # set the post-rotation value in the kinematic component
     log.debug("G53.x: setting primary, secondary and post_rotation angles in kinematic component: %s",\
-              (theta_1, theta_2, degrees(post_rot)))
+              (degrees(theta_1), degrees(theta_2), degrees(post_rot)))
     hal.set_p(kins_post_rotation, str(-post_rot))
-    #hal.set_p(kins_primary_rotation, str(degrees(theta_1)))
-    #hal.set_p(kins_secondary_rotation, str(degrees(theta_2)))
+    hal.set_p(kins_primary_rotation, str(degrees(theta_1)))
+    hal.set_p(kins_secondary_rotation, str(degrees(theta_2)))
 
     # calculate the work offset in tool-coords
     log.debug("G53.x: Saved work offset: %s", saved_work_offset)
@@ -841,8 +875,7 @@ def g53x_core(self):
     log.debug("G53.x:twp_offset: %s", twp_offset)
     tot_offset_pre = tuple(np.add(work_offset_from_cntr_rot_table, twp_offset))
     log.debug("G53.x:tot_offset_pre: %s", tot_offset_pre)
-    P = matrix_to_point(kins_calc_tool_transformation(self,
-                            point_to_matrix(tot_offset_pre), radians(theta_1), radians(theta_2), post_rot, 'inv'))
+    P = matrix_to_point(kins_calc_tool_transformation(self, point_to_matrix(tot_offset_pre), theta_1, theta_2, post_rot, 'inv'))
     log.debug("G53.x:tot_offset_pre rotated: %s", P)
     new_offset = tuple(np.add((P[0], P[1], P[2]), kins_rot_point_abs))
     log.debug("G53.x:new_offset: %s", new_offset)
@@ -855,10 +888,12 @@ def g53x_core(self):
     self.execute("G10 L2 P9 X%f Y%f Z%f" % (new_offset[0], new_offset[1], new_offset[2]), lineno())
     #self.execute("G10 L2 P6 X%f Y%f Z%f R%f" % (tot_new_offset[0], tot_new_offset[1], tot_new_offset[2], degrees(post_rot)), lineno())
 
-    log.debug("G53.x: Moving (secondary and primary) joints to: %s", (theta_2, theta_1))
+    log.debug("G53.x: Required (secondary and primary) joint position for table-angle 0° would be: %s", (degrees(theta_2), degrees(theta_1)))
+    log.debug("G53.x: Adding set table-angle of %s° to the secondary rotation.", u)
+    log.debug("G53.x: Moving (secondary and primary) joints to: %s", (degrees(theta_2) + u, degrees(theta_1)))
     if (x,y,z) == (None,None,None):
         # Move rotary joints to align the tool with the requested twp
-        self.execute("G0 %s%f %s%f" % (joint_letter_secondary, theta_2, joint_letter_primary, theta_1), lineno())
+        self.execute("G0 %s%f %s%f" % (joint_letter_secondary, degrees(theta_2) + u, joint_letter_primary, degrees(theta_1)), lineno())
     # switch to the dedicated TWP work offsets
     self.execute("G59", lineno())
     # activate TOOL kinematics
@@ -866,16 +901,19 @@ def g53x_core(self):
     if (x,y,z) != (None,None,None):
         log.debug('G53.3 called')
         self.execute("G0 X%s Y%s Z%s %s%f %s%f" %
-            (x, y, z, joint_letter_secondary, theta_2, joint_letter_primary, theta_1), lineno())
+
+            (x, y, z, joint_letter_secondary, degrees(theta_2) + u, joint_letter_primary, degrees(theta_1)), lineno())
     # set twp-state to 'active' (2)
     self.execute("M68 E2 Q2")
     yield INTERP_EXECUTE_FINISH
     return INTERP_OK
 
 # Cancel an active TWP definition and reset the parameters to zero
+
 # Note: To avoid that this python code is run prematurely by the read ahead we need a quebuster at the beginning but
 # because we need self.execute() to switch the WCS properly this remap needs to be called from
 # an ngc that contains a quebuster before calling this code
+
 def g69_core(self):
     global twp_flag, saved_work_offset_number, saved_work_offset
     if self.task == 0: # ignore the preview interpreter
@@ -901,6 +939,7 @@ def g683(self, **words):
 
     # ! IMPORTANT !
     #  We need to use 'yield INTERP_EXECUTE_FINISH' here to stop the read ahead
+
     # and avoid it executing the rest of the remap ahead of time
     ## NOTE: No 'self.execute(..)' command can be used after 'yield INTERP_EXECUTE_FINISH'
     yield INTERP_EXECUTE_FINISH
@@ -917,6 +956,7 @@ def g683(self, **words):
 
     # NOTE: Due to easier abort handling we currently restrict the use of twp to G54
     # as LinuxCNC seems to revert to G54 as the default system
+
     # get which offset is active (g54=1 .. g59.3=9)
     (n, offsets) = get_current_work_offset(self)
     if n != 1:
@@ -940,7 +980,10 @@ def g683(self, **words):
     twp_flag = [0, 1, 'empty'] # one call to define the twp in this mode
 
     theta_1, theta_2 = get_current_rotary_positions(self)
-    post_rot = 0
+    # calculate tool-prerotation necessary to have tool-x vector in machine xy-plane
+   ###post_rot = kins_calc_tool_rot_c_for_horizontal_x(self, theta_1, theta_2 )
+    post_rot=0
+    log.info("G68.3: post-rotation calculated for x-vector in machine-xy plane [deg]:  %s", degrees(post_rot))
     # then we need the tool transformation matrix of the current tool orientation with the
     # calculated post-rotation to get the tool-x vector in the machine xy-plane
     # for this we take the 4x4 identity matrix and pass it through the inverse tool kinematic
@@ -976,6 +1019,7 @@ def g682(self, **words):
 
     # ! IMPORTANT !
     #  We need to use 'yield INTERP_EXECUTE_FINISH' here to stop the read ahead
+
     # and avoid it executing the rest of the remap ahead of time
     ## NOTE: No 'self.execute(..)' command can be used after 'yield INTERP_EXECUTE_FINISH'
     yield INTERP_EXECUTE_FINISH
@@ -992,6 +1036,7 @@ def g682(self, **words):
 
     # NOTE: Due to easier abort handling we currently restrict the use of twp to G54
     # as LinuxCNC seems to revert to G54 as the default system
+
     (n, offsets) = get_current_work_offset(self)
     if n != 1:
          # reset the twp parameters
@@ -1322,6 +1367,7 @@ def g684(self, **words):
 
     # ! IMPORTANT !
     #  We need to use 'yield INTERP_EXECUTE_FINISH' here to stop the read ahead
+
     # and avoid it executing the rest of the remap ahead of time
     ## NOTE: No 'self.execute(..)' command can be used after 'yield INTERP_EXECUTE_FINISH'
     yield INTERP_EXECUTE_FINISH
@@ -1350,7 +1396,9 @@ def g684(self, **words):
         return INTERP_ERROR
 
     # store the current TWP to
+
     twp_matrix_current = np.matrix.copy(twp_matrix)
+
     c = self.blocks[self.remap_level]
     p = c.p_number if c.p_flag else 0
 

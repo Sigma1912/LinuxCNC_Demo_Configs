@@ -33,8 +33,6 @@ static struct haldata {
   hal_float_t *post_rot;
   hal_float_t *nut_angle;
   hal_float_t *table_angle;
-  hal_float_t *prim_angle;
-  hal_float_t *sec_angle;
   hal_float_t *tool_offset_z;
 
   // Example parameters:
@@ -89,8 +87,6 @@ static int xyzbc_tnr_kins_setup(void) {
     res += hal_pin_float_newf(HAL_IN ,&(haldata->post_rot) ,comp_id,"%s.post-rot" ,HAL_PREFIX);
     res += hal_pin_float_newf(HAL_IN ,&(haldata->nut_angle) ,comp_id,"%s.nut-angle" ,HAL_PREFIX);
     res += hal_pin_float_newf(HAL_IN ,&(haldata->table_angle) ,comp_id,"%s.table-angle" ,HAL_PREFIX);
-    res += hal_pin_float_newf(HAL_IN ,&(haldata->prim_angle) ,comp_id,"%s.primary-angle" ,HAL_PREFIX);
-    res += hal_pin_float_newf(HAL_IN ,&(haldata->sec_angle) ,comp_id,"%s.secondary-angle" ,HAL_PREFIX);
 
     // hal pins required for switchable kinematics:
     res += hal_pin_bit_new("kinstype.is-0", HAL_OUT, &(haldata->kinstype_is_0), comp_id);
@@ -191,31 +187,29 @@ int kinematicsForward(const double *j,
     double       wc = *haldata->post_rot;
     double       nu = *haldata->nut_angle; // degrees
     double       mu = *haldata->table_angle; // degrees
-    double  theta_1 = *haldata->prim_angle; // degrees
-    double  theta_2 = *haldata->sec_angle; // degrees
 
     // tool-length offset if G43 is used (offset as defined in the tool editor)
     double       Dt = *(haldata->tool_offset_z);
 
-    // variables used in both, TCP and TOOL kinematics
+    // substitutions as used in mathematical documentation
+    // including degree -> radians angle conversion
+
+    // variables used in TCP kinematics
     double       Sp = sin(j[3]*TO_RAD);
     double       Cp = cos(j[3]*TO_RAD);
-    double       Ss = sin(j[4]*TO_RAD);
-    double       Cs = cos(j[4]*TO_RAD);
+    double       Ss = sin((j[4]-mu)*TO_RAD); // compensate for table orientation angle as explained in the documentation
+    double       Cs = cos((j[4]-mu)*TO_RAD); // compensate for table orientation angle as explained in the documentation
     double       Sv = sin(nu*TO_RAD);
     double       Cv = cos(nu*TO_RAD);
     double       Su = sin(mu*TO_RAD);
     double       Cu = cos(mu*TO_RAD);
     double      Swc = sin(wc);
     double      Cwc = cos(wc);
-
-    // in TCP we use the current positions of the spindle joints
-    // in TOOL we will use the angle values calculated in remap.py
-    double     CvSp = 0;
-    double     SvSp = 0;
-    double        r = 0;
-    double        s = 0;
-    double        t = 0;
+    double     CvSp = Cv*Sp;
+    double     SvSp = Sv*Sp;
+    double        r = Cp + Sv*Sv*(1-Cp);
+    double        s = Cp + Cv*Cv*(1-Cp);
+    double        t = -Sv*Cv*(1-Cp);
 
     // onLy used to be consistent with math in documentation
     double       Px = j[0];
@@ -228,6 +222,7 @@ int kinematicsForward(const double *j,
     // for switchable kinematics
     switch (switchkins_type) {
         case 0: // ========================= IDENTITY kinematics FORWARD ======================
+
             pos->tran.x = j[0] + cos(-mu*TO_RAD)*Dx;
             pos->tran.y = j[1] + sin(-mu*TO_RAD)*Dx;
             pos->tran.z = j[2] + Dz;
@@ -237,36 +232,33 @@ int kinematicsForward(const double *j,
             break;
 
         case 1: // ========================= TCP kinematics FORWARD
-              Ss = sin((j[4]-mu)*TO_RAD);
-              Cs = cos((j[4]-mu)*TO_RAD);
-              Sp = sin(j[3]*TO_RAD);
-              Cp = cos(j[3]*TO_RAD);
-            CvSp = Cv*Sp;
-            SvSp = Sv*Sp;
-               r = Cp + Sv*Sv*(1-Cp);
-               s = Cp + Cv*Cv*(1-Cp);
-               t = -Sv*Cv*(1-Cp);
 
-pos->tran.x =  (-((Cp*Cu + CvSp*Su)*Cs + (Cu*CvSp - Su*r)*Ss)*(Drpx - Px) - ((Cu*CvSp - Cp*Su)*Cs - (CvSp*Su + Cu*r)*Ss)*(Drpy - Py) - (Cs*SvSp - Ss*t)*(Drpz + Dt - Pz) + Cs*Dx + Drpx) ;
-pos->tran.y =  (((Cu*CvSp - Su*r)*Cs - (Cp*Cu + CvSp*Su)*Ss)*(Drpx - Px) - ((CvSp*Su + Cu*r)*Cs + (Cu*CvSp - Cp*Su)*Ss)*(Drpy - Py) - (Ss*SvSp + Cs*t)*(Drpz + Dt - Pz) + Dx*Ss + Drpy) ;
-pos->tran.z =  ((Cu*SvSp - Su*t)*(Drpx - Px) - (Su*SvSp + Cu*t)*(Drpy - Py) - (Drpz + Dt - Pz)*s + Drpz + Dt + Dz) ;
+            pos->tran.x =  (-((Cp*Cu + CvSp*Su)*Cs + (Cu*CvSp - Su*r)*Ss)*(Drpx - Px)
+                           - ((Cu*CvSp - Cp*Su)*Cs - (CvSp*Su + Cu*r)*Ss)*(Drpy - Py)
+                           - (Cs*SvSp - Ss*t)*(Drpz + Dt - Pz) + Cs*Dx + Drpx);
 
+            pos->tran.y =  (((Cu*CvSp - Su*r)*Cs - (Cp*Cu + CvSp*Su)*Ss)*(Drpx - Px)
+                           - ((CvSp*Su + Cu*r)*Cs + (Cu*CvSp - Cp*Su)*Ss)*(Drpy - Py)
+                           - (Ss*SvSp + Cs*t)*(Drpz + Dt - Pz) + Dx*Ss + Drpy);
 
+            pos->tran.z =  ((Cu*SvSp - Su*t)*(Drpx - Px)
+                          - (Su*SvSp + Cu*t)*(Drpy - Py)
+                          - (Drpz + Dt - Pz)*s
+                          + Drpz + Dt + Dz) ;
             pos->b      = j[3];
             pos->c      = j[4];
 
             break;
 
-      case 2: // ========================= TOOL kinematics FORWARD 
-pos->tran.x =  (-Cwc*(Drpx - Px) + (Drpy - Py)*Swc + Drpx) ;
-pos->tran.y =  (-Cwc*(Drpy - Py) - (Drpx - Px)*Swc + Drpy) ;
-pos->tran.z =  (Pz);
+      case 2: // ========================= TOOL kinematics FORWARD
+
+            pos->tran.x =  (-Cwc*(Drpx - Px) + (Drpy - Py)*Swc + Drpx);
+            pos->tran.y =  (-Cwc*(Drpy - Py) - (Drpx - Px)*Swc + Drpy);
+            pos->tran.z =  (Pz);
             pos->b      = j[3];
             pos->c      = j[4];
 
             break;
-
-
     }
     // unused coordinates:
     pos->a = 0;
@@ -302,8 +294,6 @@ int kinematicsInverse(const EmcPose * pos,
     double       wc = *haldata->post_rot;
     double       nu = *haldata->nut_angle; // degrees
     double       mu = *haldata->table_angle; // degrees
-    double  theta_1 = *haldata->prim_angle; // degrees
-    double  theta_2 = *haldata->sec_angle; // degrees
 
     // tool-length offset if G43 is used (offset as defined in the tool editor)
     double       Dt = *(haldata->tool_offset_z);
@@ -311,25 +301,22 @@ int kinematicsInverse(const EmcPose * pos,
     // substitutions as used in mathematical documentation
     // including degree -> radians angle conversion
 
-    // variables used in both, TCP and TOOL kinematics
+    // variables used in TCP kinematics
     double       Sp = sin(j[3]*TO_RAD);
     double       Cp = cos(j[3]*TO_RAD);
-    double       Ss = sin(j[4]*TO_RAD);
-    double       Cs = cos(j[4]*TO_RAD);
+    double       Ss = sin((j[4]-mu)*TO_RAD); // compensate for table orientation angle as explained in the documentation
+    double       Cs = cos((j[4]-mu)*TO_RAD); // compensate for table orientation angle as explained in the documentation
     double       Sv = sin(nu*TO_RAD);
     double       Cv = cos(nu*TO_RAD);
     double       Su = sin(mu*TO_RAD);
     double       Cu = cos(mu*TO_RAD);
     double      Swc = sin(wc);
     double      Cwc = cos(wc);
- 
-    // in TCP we use the current positions of the spindle joints
-    // in TOOL we will use the angle values calculated in remap.py
-    double     CvSp = 0;
-    double     SvSp = 0;
-    double        r = 0;
-    double        s = 0;
-    double        t = 0;
+    double     CvSp = Cv*Sp;
+    double     SvSp = Sv*Sp;
+    double        r = Cp + Sv*Sv*(1-Cp);
+    double        s = Cp + Cv*Cv*(1-Cp);
+    double        t = -Sv*Cv*(1-Cp);
 
     // onLy used to be consistent with math in documentation
     double       Qx = pos->tran.x;
@@ -345,6 +332,7 @@ int kinematicsInverse(const EmcPose * pos,
     switch (switchkins_type) {
 
         case 0: // ========================= IDENTITY kinematics INVERSE ======================
+
             j[0] = pos->tran.x - cos(-mu*TO_RAD)*Dx;
             j[1] = pos->tran.y - sin(-mu*TO_RAD)*Dx;
             j[2] = pos->tran.z - Dz;
@@ -354,29 +342,37 @@ int kinematicsInverse(const EmcPose * pos,
 
             break;
 
-        case 1: // ========================= TCP kinematics INVERSE 
-            // in TCP we use the current positions of the spindle joints
-              Ss = sin((j[4]-mu)*TO_RAD);
-              Cs = cos((j[4]-mu)*TO_RAD);
-            CvSp = Cv*Sp;
-            SvSp = Sv*Sp;
-               r = Cp + Sv*Sv*(1-Cp);
-               s = Cp + Cv*Cv*(1-Cp);
-               t = -Sv*Cv*(1-Cp);
+        case 1: // ========================= TCP kinematics INVERSE
 
-j[0] =  (-((Cp*Cu + CvSp*Su)*Cs + (Cu*CvSp - Su*r)*Ss)*(Drpx - Qx) + ((Cu*CvSp - Su*r)*Cs - (Cp*Cu + CvSp*Su)*Ss)*(Drpy - Qy) + (Cu*SvSp - Su*t)*(Drpz + Dt - Qz) - (Cp*Cu + CvSp*Su)*Dx + (Cu*SvSp - Su*t)*Dz + Drpx) ;
-j[1] =  (-((Cu*CvSp - Cp*Su)*Cs - (CvSp*Su + Cu*r)*Ss)*(Drpx - Qx) - ((CvSp*Su + Cu*r)*Cs + (Cu*CvSp - Cp*Su)*Ss)*(Drpy - Qy) - (Su*SvSp + Cu*t)*(Drpz + Dt - Qz) - (Cu*CvSp - Cp*Su)*Dx - (Su*SvSp + Cu*t)*Dz + Drpy) ;
-j[2] =  (-(Cs*SvSp - Ss*t)*(Drpx - Qx) - (Ss*SvSp + Cs*t)*(Drpy - Qy) - Dx*SvSp - (Drpz + Dt - Qz)*s - Dz*s + Drpz + Dt) ;
+            j[0] =  (-((Cp*Cu + CvSp*Su)*Cs + (Cu*CvSp - Su*r)*Ss)*(Drpx - Qx)
+                    + ((Cu*CvSp - Su*r)*Cs - (Cp*Cu + CvSp*Su)*Ss)*(Drpy - Qy)
+                    + (Cu*SvSp - Su*t)*(Drpz + Dt - Qz)
+                    - (Cp*Cu + CvSp*Su)*Dx
+                    + (Cu*SvSp - Su*t)*Dz
+                    + Drpx);
+
+            j[1] =  (-((Cu*CvSp - Cp*Su)*Cs - (CvSp*Su + Cu*r)*Ss)*(Drpx - Qx)
+                    - ((CvSp*Su + Cu*r)*Cs + (Cu*CvSp - Cp*Su)*Ss)*(Drpy - Qy)
+                    - (Su*SvSp + Cu*t)*(Drpz + Dt - Qz)
+                    - (Cu*CvSp - Cp*Su)*Dx
+                    - (Su*SvSp + Cu*t)*Dz
+                    + Drpy);
+
+            j[2] =  (-(Cs*SvSp - Ss*t)*(Drpx - Qx)
+                    - (Ss*SvSp + Cs*t)*(Drpy - Qy)
+                    - Dx*SvSp - (Drpz + Dt - Qz)*s
+                    - Dz*s + Drpz + Dt);
+
             j[3] = pos->b;
             j[4] = pos->c;
 
             break;
 
         case 2: // ========================= TOOL  kinematics INVERSE
-//TCP kinematics INVERSE
-j[0] =  (-Cwc*(Drpx - Qx) - (Drpy - Qy)*Swc + Drpx) ;
-j[1] =  (-Cwc*(Drpy - Qy) + (Drpx - Qx)*Swc + Drpy) ;
-j[2] =  (Qz);
+
+            j[0] =  (-Cwc*(Drpx - Qx) - (Drpy - Qy)*Swc + Drpx);
+            j[1] =  (-Cwc*(Drpy - Qy) + (Drpx - Qx)*Swc + Drpy);
+            j[2] =  (Qz);
 
             j[3] = pos->b;
             j[4] = pos->c;
