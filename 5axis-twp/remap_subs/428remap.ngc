@@ -1,6 +1,6 @@
-;M428 by remap: kinstype==1 (xyzac,xyzbc) (note: sparm=identityfirst)
+;M428 by remap: kinstype==0 (Identity)
 o<428remap>sub
-  #<kinstype> = 1        ; xyzac,xyzbc
+  #<kinstype> = 0
   #<SWITCHKINS_PIN> = 3  ; set N as required: motion.analog-out-0N
 
 o1 if [exists [#<_hal[motion.switchkins-type]>]]

@@ -1,0 +1,40 @@
+Switchable Table Rotary Spindle rotary (trsr) Sim config
+
+xyzbc-trsr (switchable kinematics)
+
+
+Demonstrations:
+
+For a demonstration of XYZBC_TCP kinematics the user can run the preloaded demo gcode with the default offsets.
+
+In the right hand panel of the axis gui sliders are provided to
+
+- change the geometrical x-offset and z-pivot length of the rotary B spindle.
+  The offsets are visibly adjusted in the vismach simulation and represented by a red indicator
+  for the x-offset and a blue indicator for the z-pivot.
+
+- see the effects of misconfiguring the (x,y)-rot-axis values used in the kinematics. These values represent the
+  physical position of the table rotary-axis in the machine as measured from the machine home position to the face center
+  of the rotary C table. The true rotation-axis of the model is indicated in the vismach simulation by a yellow line.
+
+NOTE:
+For proper tool-path preview RELOAD THE CGODE after startup and after changing offset values.
+
+
+This simulation also includes a python remap of Gcodes for tilted workplane (TWP) functionality.
+
+Implemented TWP functionality:
+G68.2 : defines twp using euler-angles, pitch-roll-yaw, 2-vectors, 3 points, optionally with offset in XYZ and rotation in XY
+G68.3 : defines twp from current tool orientation, optionally with offset in XYZ and rotation in XY
+G68.4 : same as G68.2 but as an incremental definition from an active TWP plane
+G69 : cancels the current twp (resets all parameters, moves to G54 and sets Identity kinematics)
+G53.1 (P) : spindle orientation without tcp, switches to G59 and activates tool kinematics
+G53.3 (P XYZ) : same as G53.1 but with simultaneous move the the XYZ coords on the twp plane
+G53.6 (P) : same as G53.1 but spindle orientation with tcp
+
+- All G53.x commands will respect axis limits as set in the ini file for the table and spindle rotation joints.
+- The P word sets the orientation strategy: 0(default)=shortest distance,
+                                            1=positive rotation only,
+                                            2=negative rotation only
+                                            (this applies to the prioritized rotary, the other rotary moves the shortest distance)
+- The prioritized rotary can be set using the [TWP]PRIORITY value (1 or 2) in the ini file.

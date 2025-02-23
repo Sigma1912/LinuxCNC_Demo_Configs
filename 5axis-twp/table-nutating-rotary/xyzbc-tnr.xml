@@ -2,11 +2,13 @@
 <pyvcp>
 
   <vbox>
+  <labelframe text="Kinematics">
+   <font>("Helvetica",12)</font>
     <relief>"ridge"</relief>
     <bd>5</bd>
     <multilabel>
       <legends>["0:IDENTITY", "1: TCP  ", "2: TWP  "]</legends>
-      <font>("Helvetica",16)</font>
+      <font>("Helvetica",12)</font>
       <bg>"black"</bg>
       <fg>"yellow"</fg>
     </multilabel>
@@ -25,6 +27,7 @@
       <text>"TWP"</text>
       <bd>3</bd>
     </button>
+</labelframe>
   </vbox>
 
 <!-- create a space to the next element -->
@@ -39,7 +42,7 @@
 
   <vbox>
   <labelframe text="Joint position">
-    <font>("Helvetica",14)</font>
+    <font>("Helvetica",12)</font>
     <hbox>
         <vbox>
             <hbox>
@@ -119,25 +122,42 @@
     </hbox>
   </vbox>
 
-  <vbox>
-    <relief>"ridge"</relief>
-    <bd>5</bd>
-    <button>
-      <halpin>"vismach-clear"</halpin>
-      <text>"vismach-clear"</text>
-      <bd>3</bd>
-    </button>
-  </vbox>
+  <labelframe text="Visualisation">
+    <font>("Helvetica",12)</font>
+
+
  <vbox>
-   <checkbutton>
-     <halpin>"hide-work-piece-1"</halpin>
-     <text>"Hide work piece 1"</text>
-   </checkbutton>
    <checkbutton>
      <halpin>"hide-spindle-body"</halpin>
      <text>"Hide spindle body"</text>
    </checkbutton>
+   <checkbutton>
+     <halpin>"hide-work-piece-1"</halpin>
+     <text>"Hide work piece 1"</text>
+   </checkbutton>
+  <hbox>
+    <label>
+       <text>"Scale Coords:   "</text>
+       <font>("Helvetica",10)</font>
+    </label>
+    <scale>
+	<font>("Helvetica",10)</font>
+	<width>"12"</width>
+	<halpin>"scale-coords"</halpin>
+	<resolution>0.05</resolution>
+	<orient>HORIZONTAL</orient>
+	<initval>1</initval>
+	<min_>0</min_>
+	<max_>2</max_>
+    </scale>
+    </hbox>
+     <button>
+      <halpin>"vismach-clear"</halpin>
+      <text>"Clear Backplot"</text>
+      <bd>3</bd>
+    </button>
  </vbox>
+  </labelframe>
 <!-- create a space to the next element -->
   <vbox>
     <hbox>
@@ -149,8 +169,8 @@
   </vbox>
 
   <vbox>
-  <labelframe text="Rotary Assembly Offset">
-    <font>("Helvetica",14)</font>
+  <labelframe text="Table Geometry">
+    <font>("Helvetica",12)</font>
     <hbox>
     <label>
        <text>"table-angle:   "</text>
@@ -215,22 +235,6 @@
         <max_>350</max_>
     </scale>
     </hbox>
-  <hbox>
-    <label>
-       <text>"Scale Coords:   "</text>
-       <font>("Helvetica",10)</font>
-    </label>
-    <scale>
-	<font>("Helvetica",10)</font>
-	<width>"12"</width>
-	<halpin>"scale-coords"</halpin>
-	<resolution>0.05</resolution>
-	<orient>HORIZONTAL</orient>
-	<initval>1</initval>
-	<min_>0</min_>
-	<max_>2</max_>
-    </scale>
-    </hbox>
     <hbox>
     <label>
        <font>("Helvetica",8)</font>
@@ -256,14 +260,8 @@
   </vbox>
 
   <vbox>
-  <labelframe text="Rotation Point Offset">
-    <font>("Helvetica",14)</font>
-    <hbox>
-    <label>
-       <text>" This should demonstrate that TCP kinematics\n require the 'rot-point' settings (yellow)\n to match the physical location\n of the rotation-point (red)."</text>
-       <font>("Helvetica",8)</font>
-    </label>
-    </hbox>
+  <labelframe text="Table Rotation Point Offset">
+    <font>("Helvetica",12)</font>
     <hbox>
     <label>
        <font>("Helvetica",8)</font>
@@ -368,7 +366,7 @@
   <vbox>
     <hbox>
     <label>
-       <text>" FOR PROPER TOOL-PATH PREVIEW \n RELOAD AND RESTART THE\n GCODE AFTER STARTUP AND\n AFTER CHANGING OFFSETS!"</text>
+       <text>" RELOAD GCODE AFTER STARTUP AND\n AFTER CHANGING OFFSETS!"</text>
        <font>("Helvetica",9)</font>
     </label>
     </hbox>

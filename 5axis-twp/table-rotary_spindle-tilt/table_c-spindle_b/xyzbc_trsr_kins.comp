@@ -1,4 +1,4 @@
-component xyzbca_trsrn_kins "Switchable kinematics for 6 axis machine with a rotary table B, rotary spindle C and nutating spindle A";
+component xyzbc_trsr_kins "Switchable kinematics for 5 axis machine with a spinde B  and table C rotation";
 
 description
 """
@@ -25,14 +25,14 @@ static struct haldata {
   hal_u32_t *out;
   // these should be parameters really but we want to be able to
   // change them for demonstration purposes
-  hal_float_t *x_pivot;
   hal_float_t *z_pivot;
   hal_float_t *x_offset;
-  hal_float_t *y_offset;
   hal_float_t *x_rot_axis;
-  hal_float_t *z_rot_axis;
-  hal_float_t *virtual_rot;
-  hal_float_t *nut_angle;
+  hal_float_t *y_rot_axis;
+  hal_float_t *pre_rot;
+  hal_float_t *twp_x;
+  hal_float_t *twp_y;
+  hal_float_t *twp_z;
   hal_float_t *prim_angle;
   hal_float_t *sec_angle;
   hal_float_t *tool_offset_z;
@@ -57,8 +57,8 @@ FUNCTION(fdemo) {
    fpin++;
 }
 
-static int xyzbca_trsrn_kins_setup(void) {
-#define HAL_PREFIX "xyzbca_trsrn_kins"
+static int xyzbc_trsr_setup(void) {
+#define HAL_PREFIX "xyzbc_trsr_kins"
     int res=0;
     // inbherit comp_id from rtapi_main()
     if (comp_id < 0) goto error;
@@ -76,17 +76,17 @@ static int xyzbca_trsrn_kins_setup(void) {
     // res += hal_param_float_newf(HAL_RW, &haldata->param_rw ,comp_id,"%s.param-rw",HAL_PREFIX);
     // res += hal_param_float_newf(HAL_RO, &haldata->param_ro ,comp_id,"%s.param-ro",HAL_PREFIX);
 
-    // hal pins required for xyzbca_trsrn kinematics:
+    // hal pins required for xyzbc_trsr_kins kinematics:
     res += hal_pin_float_newf(HAL_IN ,&(haldata->tool_offset_z) 
                               ,comp_id,"%s.tool-offset-z" ,HAL_PREFIX);
-    res += hal_pin_float_newf(HAL_IN ,&(haldata->x_pivot) ,comp_id,"%s.x-pivot" ,HAL_PREFIX);
     res += hal_pin_float_newf(HAL_IN ,&(haldata->z_pivot) ,comp_id,"%s.z-pivot" ,HAL_PREFIX);
     res += hal_pin_float_newf(HAL_IN ,&(haldata->x_offset) ,comp_id,"%s.x-offset" ,HAL_PREFIX);
-    res += hal_pin_float_newf(HAL_IN ,&(haldata->y_offset) ,comp_id,"%s.y-offset" ,HAL_PREFIX);
     res += hal_pin_float_newf(HAL_IN ,&(haldata->x_rot_axis) ,comp_id,"%s.x-rot-axis" ,HAL_PREFIX);
-    res += hal_pin_float_newf(HAL_IN ,&(haldata->z_rot_axis) ,comp_id,"%s.z-rot-axis" ,HAL_PREFIX);
-    res += hal_pin_float_newf(HAL_IN ,&(haldata->virtual_rot) ,comp_id,"%s.virtual-rot" ,HAL_PREFIX);
-    res += hal_pin_float_newf(HAL_IN ,&(haldata->nut_angle) ,comp_id,"%s.nut-angle" ,HAL_PREFIX);
+    res += hal_pin_float_newf(HAL_IN ,&(haldata->y_rot_axis) ,comp_id,"%s.y-rot-axis" ,HAL_PREFIX);
+    res += hal_pin_float_newf(HAL_IN ,&(haldata->pre_rot) ,comp_id,"%s.pre-rot" ,HAL_PREFIX);
+    res += hal_pin_float_newf(HAL_IN ,&(haldata->twp_x) ,comp_id,"%s.twp-x" ,HAL_PREFIX);
+    res += hal_pin_float_newf(HAL_IN ,&(haldata->twp_y) ,comp_id,"%s.twp-y" ,HAL_PREFIX);
+    res += hal_pin_float_newf(HAL_IN ,&(haldata->twp_z) ,comp_id,"%s.twp-z" ,HAL_PREFIX);
     res += hal_pin_float_newf(HAL_IN ,&(haldata->prim_angle) ,comp_id,"%s.primary-angle" ,HAL_PREFIX);
     res += hal_pin_float_newf(HAL_IN ,&(haldata->sec_angle) ,comp_id,"%s.secondary-angle" ,HAL_PREFIX);
 
@@ -160,7 +160,7 @@ int kinematicsSwitch(int new_switchkins_type)
 KINEMATICS_TYPE kinematicsType()
 {
 static bool is_setup=0;
-    if (!is_setup)  xyzbca_trsrn_kins_setup();
+    if (!is_setup)  xyzbc_trsr_setup();
     return KINEMATICS_BOTH; // set as required
            // Note: If kinematics are identity, using KINEMATICS_BOTH
            //       may be used in order to allow a gui to display
@@ -181,24 +181,21 @@ int kinematicsForward(const double *j,
     // START of custom variable declaration for Forward kinematics
 
     // geometric offsets of the universal spindle head as defined in the ini file
-    double       Lx = *haldata->x_pivot;
+    double       Ly = 0;
     double       Lz = *haldata->z_pivot;
     double       Dx = *haldata->x_offset;
-    double       Dy = *haldata->y_offset;
-    double     Drax = *haldata->x_rot_axis - Lx- Dx;
-    double     Draz = *haldata->z_rot_axis - Lz;
-    double       tc = *haldata->virtual_rot;
-    double       nu = *haldata->nut_angle; // degrees
+    double       Dz = 0;
+    double     Drax = *haldata->x_rot_axis - Dx;
+    double     Dray = *haldata->y_rot_axis - Ly;
+    double       tc = *haldata->pre_rot;
+    double       nu = 0; // degrees
     double  theta_1 = *haldata->prim_angle;
     double  theta_2 = *haldata->sec_angle;
 
     // tool-length offset if G43 is used (offset as defined in the tool editor)
     double       Dt = *(haldata->tool_offset_z);
 
-    // substitutions as used in mathematical documentation
-    // including degree -> radians angle conversion
-
-    // variables used in both, TCP and TWP kinematics
+    // variables used in both, TCP and WP kinematics
     double       Sw = sin(j[4]*TO_RAD);
     double       Cw = cos(j[4]*TO_RAD);
     double       Sv = sin(nu*TO_RAD);
@@ -232,86 +229,89 @@ int kinematicsForward(const double *j,
             pos->tran.x = j[0];
             pos->tran.y = j[1];
             pos->tran.z = j[2];
-            pos->a      = j[3];
-            pos->b      = j[4];
-            pos->c      = j[5];
+            pos->b      = j[3];
+            pos->c      = j[4];
+
             break;
 
-       case 1: // ========================= TCP kinematics FORWARD 
-            // in TCP we use the current positions of the spindle joints
-              Ss = sin(j[3]*TO_RAD);
-              Cs = cos(j[3]*TO_RAD);
-              Sp = sin(j[5]*TO_RAD);
-              Cp = cos(j[5]*TO_RAD);
-            CvSs = Cv*Ss;
-            SvSs = Sv*Ss;
-               r = Cs + Sv*Sv*(1-Cs);
-               s = Cs + Cv*Cv*(1-Cs);
-               t = Sv*Cv*(1-Cs);
-            pos->tran.x = - Cp*Cw*Dx 
-                          + Cw*Dy*Sp 
-                          - Cw*(Drax - Px) 
-                          - (Cw*Sp*SvSs + Cp*Cw*t + Sw*s)*(Dt + Lz) 
-                          + (CvSs*Cw*Sp - Cp*Cw*r - Sw*t)*Lx 
-                          - (Draz - Pz)*Sw 
-                          + Drax 
-                          + Dx 
-                          + Lx;
-            pos->tran.y =   (Cp*SvSs - Sp*t)*(Dt + Lz) 
-                          - Cp*Dy 
-                          - (Cp*CvSs + Sp*r)*Lx 
-                          - Dx*Sp 
-                          + Dy 
-                          + Py;
-            pos->tran.z =   Cp*Dx*Sw 
-                          - Dy*Sp*Sw 
-                          - Cw*(Draz - Pz) 
-                          + (Sp*SvSs*Sw + Cp*Sw*t - Cw*s)*(Dt + Lz) 
-                          - (CvSs*Sp*Sw - Cp*Sw*r + Cw*t)*Lx 
-                          + (Drax - Px)*Sw 
-                          + Draz 
-                          + Dt 
-                          + Lz; 
-            pos->a      = j[3];
-            pos->b      = j[4];
-            pos->c      = j[5];
-            break;
+        case 1: // ========================= TCP kinematics FORWARD ======================
+        // in TCP we use the current positions of the spindle joints
+          Ss = sin(j[5]*TO_RAD);
+          Cs = cos(j[5]*TO_RAD);
+          Sp = sin(j[3]*TO_RAD);
+          Cp = cos(j[3]*TO_RAD);
+        CvSs = Cv*Ss;
+        SvSs = Sv*Ss;
+           r = Cs + Sv*Sv*(1-Cs);
+           s = Cs + Cv*Cv*(1-Cs);
+           t = Sv*Cv*(1-Cp);
+        // onLy used to be consistent with math in documentation
+          Px = j[0];
+          Py = j[1];
+          Pz = j[2];
+        pos->tran.x = - Cp*Cw*Dx 
+                      - Cw*Dz*Sp 
+                      - Cw*(Drax - Px) 
+                      - (Cp*Cw*SvSs + Cw*Sp*s - Sw*t)*(Dt + Lz) 
+                      + (Cp*CvSs*Cw - Cw*Sp*t + Sw*r)*Ly 
+                      + (Dray - Py)*Sw 
+                      + Drax 
+                      + Dx;
+        pos->tran.y = - Cp*Dx*Sw 
+                      - Dz*Sp*Sw 
+                      - Cw*(Dray - Py) 
+                      - (Cp*SvSs*Sw + Sp*Sw*s + Cw*t)*(Dt + Lz) 
+                      + (Cp*CvSs*Sw - Sp*Sw*t - Cw*r)*Ly 
+                      - (Drax - Px)*Sw 
+                      + Dray 
+                      + Ly;
+        pos->tran.z =   (Sp*SvSs - Cp*s)*(Dt + Lz) 
+                      - Cp*Dz 
+                      - (CvSs*Sp + Cp*t)*Ly 
+                      + Dx*Sp 
+                      + Dt 
+                      + Dz 
+                      + Lz 
+                      + Pz; 
+        pos->b      = j[3];
+        pos->c      = j[4];
+        break;
 
-      case 2: // ========================= TWP kinematics FORWARD 
-            // in TWP kinematics we use the articulated joint positions from the TWP
-              Ss = sin(theta_2);
-              Cs = cos(theta_2);
-              Sp = sin(theta_1);
-              Cp = cos(theta_1);
-            CvSs = Cv*Ss;
-            SvSs = Sv*Ss;
-               r = Cs + Sv*Sv*(1-Cs);
-               s = Cs + Cv*Cv*(1-Cs);
-               t = Sv*Cv*(1-Cs);
-            pos->tran.x =  - ((CvSs*Stc - Ctc*r)*Cp + (Ctc*CvSs + Cs*Stc)*Sp)*(Dx + Lx + Px) 
-                           + (CvSs*Stc - Ctc*r)*Dx 
-                           + ((Ctc*CvSs + Cs*Stc)*Cp - (CvSs*Stc - Ctc*r)*Sp)*(Dy + Py) 
-                           - (Ctc*CvSs + Cs*Stc)*Dy 
-                           - Ctc*Lx 
-                           + (Stc*SvSs + Ctc*t)*(Lz + Pz);
-            pos->tran.y =  - ((Ctc*CvSs + Stc*r)*Cp + (Cs*Ctc - CvSs*Stc)*Sp)*(Dx + Lx + Px) 
-                           + (Ctc*CvSs + Stc*r)*Dx 
-                           + ((Cs*Ctc - CvSs*Stc)*Cp - (Ctc*CvSs + Stc*r)*Sp)*(Dy + Py) 
-                           - (Cs*Ctc - CvSs*Stc)*Dy 
-                           + (Ctc*SvSs - Stc*t)*(Lz + Pz) 
-                           + Lx*Stc;
-            pos->tran.z =    (Sp*SvSs + Cp*t)*(Dx + Lx + Px) 
-                           - (Cp*SvSs - Sp*t)*(Dy + Py) 
-                           + Dy*SvSs 
-                           + (Lz + Pz)*s 
-                           - Dx*t 
-                           - Lz;
-            pos->a      = j[3];
-            pos->b      = j[4];
-            pos->c      = j[5];
+        case 2: // ========================= TWP kinematics FORWARD ======================
+        // in TWP kinematics we use the articulated joint positions from the TWP remap
+          Ss = sin(0);
+          Cs = cos(0);
+          Sp = sin(theta_2);
+          Cp = cos(theta_2);
+        CvSs = Cv*Ss;
+        SvSs = Sv*Ss;
+           r = Cs + Sv*Sv*(1-Cs);
+           s = Cs + Cv*Cv*(1-Cs);
+           t = Sv*Cv*(1-Cs);
+        pos->tran.x =    ((Cs*Ctc - CvSs*Stc)*Cp - (Ctc*SvSs - Stc*t)*Sp)*(Dx + Px) 
+                       - (Cs*Ctc - CvSs*Stc)*Dx 
+                       - ((Ctc*SvSs - Stc*t)*Cp + (Cs*Ctc - CvSs*Stc)*Sp)*(Dz + Lz + Pz) 
+                       + (Ctc*SvSs - Stc*t)*Dz 
+                       + (Ctc*CvSs + Stc*r)*(Ly + Py) 
+                       - Ly*Stc;
+        pos->tran.y =  - ((Ctc*CvSs + Cs*Stc)*Cp - (Stc*SvSs + Ctc*t)*Sp)*(Dx + Px) 
+                       + (Ctc*CvSs + Cs*Stc)*Dx 
+                       + ((Stc*SvSs + Ctc*t)*Cp + (Ctc*CvSs + Cs*Stc)*Sp)*(Dz + Lz + Pz) 
+                       - (Stc*SvSs + Ctc*t)*Dz 
+                       - (CvSs*Stc - Ctc*r)*(Ly + Py) 
+                       - Ctc*Ly;
+        pos->tran.z =    (Cp*SvSs + Sp*s)*(Dx + Px) 
+                       - (Sp*SvSs - Cp*s)*(Dz + Lz + Pz) 
+                       - Dx*SvSs 
+                       - Dz*s 
+                       + (Ly + Py)*t 
+                       - Lz;
+        pos->b      = j[3];
+        pos->c      = j[4];
             break;
     }
     // unused coordinates:
+    pos->a = 0;
     pos->u = 0;
     pos->v = 0;
     pos->w = 0;
@@ -336,14 +336,14 @@ int kinematicsInverse(const EmcPose * pos,
     // START of custom variable declaration for Forward kinematics
 
     // geometric offsets of the universal spindle head as defined in the ini file
-    double       Lx = *haldata->x_pivot;
+    double       Ly = 0;
     double       Lz = *haldata->z_pivot;
     double       Dx = *haldata->x_offset;
-    double       Dy = *haldata->y_offset;
-    double     Drax = *haldata->x_rot_axis - Lx - Dx;
-    double     Draz = *haldata->z_rot_axis - Lz;
-    double       tc = *haldata->virtual_rot;
-    double       nu = *haldata->nut_angle; // degrees
+    double       Dz = 0;
+    double     Drax = *haldata->x_rot_axis - Dx;
+    double     Dray = *haldata->y_rot_axis - Ly;
+    double       tc = *haldata->pre_rot;
+    double       nu = 0; // degrees
     double  theta_1 = *haldata->prim_angle;
     double  theta_2 = *haldata->sec_angle;
 
@@ -353,7 +353,7 @@ int kinematicsInverse(const EmcPose * pos,
     // substitutions as used in mathematical documentation
     // including degree -> radians angle conversion
 
-    // variables used in both, TCP and TWP kinematics
+    // variables used in both, TCP and WP kinematics
     double       Sw = sin(j[4]*TO_RAD);
     double       Cw = cos(j[4]*TO_RAD);
     double       Sv = sin(nu*TO_RAD);
@@ -390,82 +390,81 @@ int kinematicsInverse(const EmcPose * pos,
             j[0] = pos->tran.x;
             j[1] = pos->tran.y;
             j[2] = pos->tran.z;
-            j[3] = pos->a;
-            j[4] = pos->b;
-            j[5] = pos->c;
+            j[3] = pos->b;
+            j[4] = pos->c;
             break;
 
-       case 1: // ========================= TCP kinematics INVERSE 
-            // in TCP we use the current positions of the spindle joints
-              Ss = sin(j[3]*TO_RAD);
-              Cs = cos(j[3]*TO_RAD);
-              Sp = sin(j[5]*TO_RAD);
-              Cp = cos(j[5]*TO_RAD);
-            CvSs = Cv*Ss;
-            SvSs = Sv*Ss;
-               r = Cs + Sv*Sv*(1-Cs);
-               s = Cs + Cv*Cv*(1-Cs);
-               t = Sv*Cv*(1-Cs);  
-            j[0] =   Cp*Dx 
-                   - Dy*Sp 
-                   - Cw*(Drax + Dx + Lx - Qx) 
-                   + (Sp*SvSs + Cp*t)*(Dt + Lz) 
-                   - (CvSs*Sp - Cp*r)*Lx 
-                   + (Draz + Dt + Lz - Qz)*Sw 
-                   + Drax;
-            j[1] = - (Cp*SvSs - Sp*t)*(Dt + Lz) 
-                   + Cp*Dy 
-                   + (Cp*CvSs + Sp*r)*Lx 
-                   + Dx*Sp 
-                   - Dy 
-                   + Qy;
-            j[2] =   (Dt + Lz)*s 
-                   + Lx*t 
-                   - Cw*(Draz + Dt + Lz - Qz) 
-                   - (Drax + Dx + Lx - Qx)*Sw 
-                   + Draz;
-            j[3] = pos->a;
-            j[4] = pos->b;
-            j[5] = pos->c;
-            break;
+        case 1: // ========================= TCP kinematics INVERSE ======================
+         // in TCP we use the current positions of the spindle joints
+          Ss = sin(j[5]*TO_RAD);
+          Cs = cos(j[5]*TO_RAD);
+          Sp = sin(j[3]*TO_RAD);
+          Cp = cos(j[3]*TO_RAD);
+        CvSs = Cv*Ss;
+        SvSs = Sv*Ss;
+           r = Cs + Sv*Sv*(1-Cs);
+           s = Cs + Cv*Cv*(1-Cs);
+           t = Sv*Cv*(1-Cs);  
+        j[0] =   Cp*Dx 
+               + Dz*Sp 
+               - Cw*(Drax + Dx - Qx) 
+               + (Cp*SvSs + Sp*s)*(Dt + Lz) 
+               - (Cp*CvSs - Sp*t)*Ly 
+               - (Dray + Ly - Qy)*Sw 
+               + Drax;
+        j[1] =   Ly*r 
+               + (Dt + Lz)*t 
+               - Cw*(Dray + Ly - Qy) 
+               + (Drax + Dx - Qx)*Sw 
+               + Dray;
+        j[2] = - (Sp*SvSs - Cp*s)*(Dt + Lz) 
+               + Cp*Dz 
+               + (CvSs*Sp + Cp*t)*Ly 
+               - Dx*Sp 
+               - Dt 
+               - Dz 
+               - Lz 
+               + Qz;
+        j[3] = pos->b;
+        j[4] = pos->c;
+        break;
 
-        case 2: // ========================= TWP  kinematics INVERSE
-            // in TWP kinematics we use the articulated joint positions from the TWP
-              Ss = sin(theta_2);
-              Cs = cos(theta_2);
-              Sp = sin(theta_1);
-              Cp = cos(theta_1);
-            CvSs = Cv*Ss;
-            SvSs = Sv*Ss;
-               r = Cs + Sv*Sv*(1-Cs);
-               s = Cs + Cv*Cv*(1-Cs);
-               t = Sv*Cv*(1-Cs);
-            j[0] =     Cp*Dx 
-                    - (CvSs*Sp - Cp*r)*Lx 
-                    + (Sp*SvSs + Cp*t)*Lz 
-                    - ((CvSs*Sp - Cp*r)*Ctc + (Cp*CvSs + Cs*Sp)*Stc)*Qx 
-                    - ((Cp*CvSs + Cs*Sp)*Ctc - (CvSs*Sp - Cp*r)*Stc)*Qy 
-                    + (Sp*SvSs + Cp*t)*Qz 
-                    - Dy*Sp 
-                    - Dx 
-                    - Lx;
-            j[1] =    Cp*Dy 
-                    + (Cp*CvSs + Sp*r)*Lx 
-                    - (Cp*SvSs - Sp*t)*Lz 
-                    + ((Cp*CvSs + Sp*r)*Ctc + (Cp*Cs - CvSs*Sp)*Stc)*Qx 
-                    + ((Cp*Cs - CvSs*Sp)*Ctc - (Cp*CvSs + Sp*r)*Stc)*Qy 
-                    - (Cp*SvSs - Sp*t)*Qz 
-                    + Dx*Sp 
-                    - Dy;
-            j[2] =    (Stc*SvSs + Ctc*t)*Qx 
-                    + (Ctc*SvSs - Stc*t)*Qy 
-                    + Lz*s 
-                    + Qz*s 
-                    + Lx*t 
-                    - Lz;
-            j[3] = pos->a;
-            j[4] = pos->b;
-            j[5] = pos->c;
+        case 2: // ========================= TWP kinematics INVERSE ======================
+    // in TWP kinematics we use the articulated joint positions from the TWP remap
+      Ss = sin(0);
+      Cs = cos(0);
+      Sp = sin(theta_2);
+      Cp = cos(theta_2);
+    CvSs = Cv*Ss;
+    SvSs = Sv*Ss;
+       r = Cs + Sv*Sv*(1-Cs);
+       s = Cs + Cv*Cv*(1-Cs);
+       t = Sv*Cv*(1-Cs);
+   j[0] =     Cp*Dx 
+            - (Cp*CvSs - Sp*t)*Ly 
+            + (Cp*SvSs + Sp*s)*Lz 
+            + ((Cp*Cs - Sp*SvSs)*Ctc - (Cp*CvSs - Sp*t)*Stc)*Qx 
+            - ((Cp*CvSs - Sp*t)*Ctc + (Cp*Cs - Sp*SvSs)*Stc)*Qy 
+            + (Cp*SvSs + Sp*s)*Qz 
+            + Dz*Sp 
+            - Dx;
+    j[1] =    (Ctc*CvSs + Stc*r)*Qx 
+            - (CvSs*Stc - Ctc*r)*Qy 
+            + Ly*r 
+            + Lz*t 
+            + Qz*t 
+            - Ly;
+    j[2] =    Cp*Dz 
+            + (CvSs*Sp + Cp*t)*Ly 
+            - (Sp*SvSs - Cp*s)*Lz 
+            - ((Cs*Sp + Cp*SvSs)*Ctc - (CvSs*Sp + Cp*t)*Stc)*Qx 
+            + ((CvSs*Sp + Cp*t)*Ctc + (Cs*Sp + Cp*SvSs)*Stc)*Qy 
+            - (Sp*SvSs - Cp*s)*Qz 
+            - Dx*Sp 
+            - Dz 
+            - Lz;
+    j[3] = pos->b;
+    j[4] = pos->c;
             break;
     }
 

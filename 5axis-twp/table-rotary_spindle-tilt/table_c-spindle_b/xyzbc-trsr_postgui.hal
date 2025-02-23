@@ -1,5 +1,5 @@
 # switchkins pyvcp connections for:
-# xyzab-tdr-kins.ini
+# xyzbc-trsr.ini
 
 net :kinstype.is-0 <= kinstype.is-0 => pyvcp.multilabel.0.legend0
 net :kinstype.is-1 <= kinstype.is-1 => pyvcp.multilabel.0.legend1
@@ -14,16 +14,18 @@ net :hide-work-piece-1                    <= pyvcp.hide-work-piece-1
 net :scale-coords                         <= pyvcp.scale-coords-f
 net :vismach-clear <= pyvcp.vismach-clear => vismach.plotclear
 
+
 net :axis-x                               => pyvcp.joint0
 net :axis-y                               => pyvcp.joint1
 net :axis-z                               => pyvcp.joint2
 net :rotary-b                             => pyvcp.joint3
 net :rotary-c                             => pyvcp.joint4
 
-net :table-angle                          <= pyvcp.table-angle-f
-net :nutation-angle                       <= pyvcp.nut-angle-f
-net :x-offset                             <= pyvcp.x-offset-f
-net :z-offset                             <= pyvcp.z-offset-f
-net :x-rot-point                          <= pyvcp.x-rot-point-f
-net :y-rot-point                          <= pyvcp.y-rot-point-f
-net :z-rot-point                          <= pyvcp.z-rot-point-f
+net :hide-work-piece-1                    <= pyvcp.hide-work-piece-1
+net :hide-spindle-body                    <= pyvcp.hide-spindle-body
+
+net :pivot-z                              <= pyvcp.z-pivot-f
+net :offset-x                             <= pyvcp.x-offset-f
+net :rot-axis-x                           <= pyvcp.x-rot-axis-f
+net :rot-axis-y                           <= pyvcp.y-rot-axis-f
+

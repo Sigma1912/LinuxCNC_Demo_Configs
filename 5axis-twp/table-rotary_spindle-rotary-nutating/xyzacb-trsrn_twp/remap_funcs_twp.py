@@ -56,7 +56,7 @@ kins_secondary_rotation = kins_comp + '.secondary-angle'
 # defines the kinematic model for (world <-> tool) coordinates of the machine at hand
 # returns 4x4 transformation matrix for given angles and 4x4 input matrix
 # NOTE: these matrices must be the same as the ones used to derive the kinematic model
-def kins_calc_transformation_matrix(theta_1, theta_2, virtual_rot, matrix_in, direction='fwd'):
+def kins_calc_transformation_matrix(theta_1, theta_2, virtual_rot, matrix_in, direction='fwd'): # expects radians
     global kins_nutation_angle
     T_in = matrix_in
     ## Define 4x4 transformation for virtual rotation around tool-z to orient tool-x and -y
@@ -118,37 +118,9 @@ def kins_calc_transformation_matrix(theta_1, theta_2, virtual_rot, matrix_in, di
         return 0
 
 
-# calculates the secondary joint position for a given tool-vector
-# secondary being the joint closest to the tool
-# Note: this uses functions derived from the custom kinematic
-def kins_calc_secondary(z_vector_req, x_vector_req, theta_1_list=[]):
-    global secondary_min_limit, secondary_max_limit
-    global kins_nutation_angle
-    epsilon = 0.000001
-    theta_2_list=[]
-    (Kzx, Kzy, Kzz) = (z_vector_req[0], z_vector_req[1], z_vector_req[2])
-    # This kinmatic has infinite results for the vertical tool orientation
-    # so we explicitly define the angles for that specific case
-    if Kzz > 1 - epsilon:
-        theta_2 = 0
-    else:
-        v = radians(hal.get_value(kins_nutation_angle))
-        Sv = sin(v)
-        Cv = cos(v)
-        theta_2 = acos((Kzz - Cv*Cv)/(1 - Cv*Cv))
-    for theta in [theta_2, -theta_2]:
-        #log.debug('Checking if result %s is within secondary joint limits of %s and %s.',
-        #        degrees(theta), secondary_min_limit, secondary_max_limit)
-        if theta > secondary_min_limit and theta < secondary_max_limit:
-            #log.debug('Adding %s to valid angles list.', degrees(theta))
-            theta_2_list.append(theta)
-    #log.debug('List of possible secondary angles: %s\n',  theta_2_list)
-    return theta_2_list
-
-
 # calculates the primary joint position for a given tool-vector
 # Note: this uses functions derived from the custom kinematic
-def kins_calc_primary(z_vector_req, x_vector_req, theta_2_list=[]):
+def kins_calc_primary(log, z_vector_req, x_vector_req, theta_2_list=[]):
     global primary_min_limit, primary_max_limit
     global kins_nutation_angle
     epsilon = 0.000001
@@ -171,26 +143,54 @@ def kins_calc_primary(z_vector_req, x_vector_req, theta_2_list=[]):
             theta_1 = asin((p*Kzy - t*Kzx)/(t*t + p*p))
             # since we are using asin() we really have two solutions theta_1 and pi-theta_2
             for theta in [theta_1, transform_to_pipi(pi - theta_1)]:
-                #log.debug('Checking if result %s is within secondary joint limits of %s and %s.',
-                #        degrees(theta), secondary_min_limit, secondary_max_limit)
-                if theta > secondary_min_limit and theta < secondary_max_limit:
-                    #log.debug('Adding %s to valid angles list.', degrees(theta))
+                log.debug(f'    Checking possible primary angle {degrees(theta):.4f}° for limit violations.')
+                if degrees(theta) > secondary_min_limit and degrees(theta) < secondary_max_limit:
                     theta_1_list.append(theta)
-    #log.debug('List of possible secondary angles: %s\n',  theta_1_list)
-    return theta_1_list
+    return theta_1_list # returns radians
+
+
+# calculates the secondary joint position for a given tool-vector
+# secondary being the joint closest to the tool
+# Note: this uses functions derived from the custom kinematic
+def kins_calc_secondary(log, z_vector_req, x_vector_req):
+    global secondary_min_limit, secondary_max_limit
+    global kins_nutation_angle
+    epsilon = 0.000001
+    theta_2_list=[]
+    (Kzx, Kzy, Kzz) = (z_vector_req[0], z_vector_req[1], z_vector_req[2])
+    v = radians(hal.get_value(kins_nutation_angle))
+    Sv = sin(v)
+    Cv = cos(v)
+    # This kinmatic has infinite results for the vertical tool orientation
+    # so we explicitly define the angles for that specific case
+    if Kzz > 1 - epsilon:
+        theta_2 = 0
+    # This kinematics nutation angle restricts the negative range of Kzz
+    elif Kzz < 2*Cv*Cv - 1:
+        log.error('remap_funcs: Requested orientation not reachable with the current nutation angle.')
+        return None
+    else:
+        theta_2 = acos((Kzz - Cv*Cv)/(1 - Cv*Cv))
+    for theta in [theta_2, -theta_2]:
+        log.debug(f'    Checking possible secondary angle {degrees(theta):.4f}° for limit violations.')
+        if degrees(theta) > secondary_min_limit and degrees(theta) < secondary_max_limit:
+            theta_2_list.append(theta)
+    return theta_2_list # returns radians
 
 
 # define the order in which the joint angles need to be calculated
-def kins_calc_possible_joint_angles(z_vector_req, x_vector_req):
+def kins_calc_possible_joint_angles(log, z_vector_req, x_vector_req):
     try:
-        theta_2_calcd = kins_calc_secondary(z_vector_req, x_vector_req)
+        theta_2_calcd = kins_calc_secondary(log, z_vector_req, x_vector_req)
     except Exception as error:
-        print('kins_calc_jnt_angles, kins_calc_secondary, %s', error) 
+        log.error('kins_calc_jnt_angles, kins_calc_secondary, %s', error)
+    if theta_2_calcd == None:
+        return (None, None)
     try:
-        theta_1_calcd = kins_calc_primary(z_vector_req, x_vector_req, theta_2_calcd)
+        theta_1_calcd = kins_calc_primary(log, z_vector_req, x_vector_req, theta_2_calcd)
     except Exception as error:
-        print('kins_calc_jnt_angles, kins_calc_primary, %s', error)
-    return (theta_1_calcd, theta_2_calcd)
+        log.error('kins_calc_jnt_angles, kins_calc_primary, %s', error)
+    return (theta_1_calcd, theta_2_calcd) # returns radians
 
 
 # calculate the transformed work offset used after 53.n
@@ -202,7 +202,7 @@ def kins_calc_transformed_work_offset(current_offset, twp_offset, theta_1, theta
     return transformed_offset
 
 
-def kins_set_values(theta_1, theta_2, virtual_rot):
+def kins_set_values(theta_1, theta_2, virtual_rot): # expects radians
     hal.set_p(kins_virtual_rotation, str(virtual_rot))
     hal.set_p(kins_primary_rotation, str(theta_1))
     hal.set_p(kins_secondary_rotation, str(theta_2))
@@ -212,6 +212,7 @@ def kins_set_values(theta_1, theta_2, virtual_rot):
 # for given machine joint position angles.
 # For G68.3 this is the default tool-x direction
 # NOTE: this uses formulas derived from the transformation matrix in the inverse tool kinematic
+# TODO I don't actually know if this is the correct x orientation for G68.3'
 def kins_calc_virtual_rot_for_g683(theta_1, theta_2):
     # The idea is that the oriented x-vector is parallel to the machine xy-plane when the
     # z component of the x-direction vector is equal to zero
@@ -231,7 +232,7 @@ def kins_calc_virtual_rot_for_g683(theta_1, theta_2):
     tc = atan2(-t,(Sv*Ss))
     # note: rotation is done using a halpin that feeds into the kinematic component and the
     # vismach model. In contrast to a gcode command where 'c' refers to a physical machine joint)
-    return tc
+    return tc # returns radians
 
 
 # return the start values required to calculate the virtual rotation
@@ -239,12 +240,13 @@ def kins_calc_virtual_rot_get_values(x_vector_requested, z_vector_requested, twp
     x_vector_requested = [twp_matrix[0,0],twp_matrix[1,0],twp_matrix[2,0]]
     z_vector_requested = [twp_matrix[0,2],twp_matrix[1,2],twp_matrix[2,2]]
     matrix_in = np.asmatrix(np.identity(4))
-    return (x_vector_requested, z_vector_requested, matrix_in)
+    direction = 'inv'
+    return (x_vector_requested, z_vector_requested, matrix_in, direction)
 
 
 # If the operator has requested a rotation by passing an R word in the 68.n command we need to 
 # create a rotation matrix that represents a rotation around the Z-axis of the TWP plane
-def kins_calc_twp_origin_rot_matrix(r):
+def kins_calc_twp_origin_rot_matrix(r): # expects radians
     # we use xzx-euler rotation to create the rotation matrix for the requested origin rotation
     twp_origin_rot_matrix = calc_euler_rot_matrix(0, r, 0, '131')
 
@@ -260,7 +262,7 @@ def kins_calc_transformation_get_direction():
 # returns the pin name for the virtual rotation in the kinematics component
 def kins_get_current_virtual_rot():
     current_virtual_rot = hal.get_value(kins_virtual_rotation)
-    return current_virtual_rot
+    return current_virtual_rot # returns radians
 
 
 
@@ -280,8 +282,6 @@ def point_to_matrix(point):
 def matrix_to_point(matrix):
     point = (matrix[0,3],matrix[1,3],matrix[2,3])
     return point
-
-
 
 
 # this is from 'mika-s.github.io'
@@ -320,9 +320,6 @@ def Rz(th):
 
 # returns the rotation matrices for given order and angles
 def calc_euler_rot_matrix(th1, th2, th3, order):
-    th1 = radians(th1)
-    th2 = radians(th2)
-    th3 = radians(th3)
     if order == '131':
         matrix = np.dot(np.dot(Rx(th1), Rz(th2)), Rx(th3))
     elif order=='121':

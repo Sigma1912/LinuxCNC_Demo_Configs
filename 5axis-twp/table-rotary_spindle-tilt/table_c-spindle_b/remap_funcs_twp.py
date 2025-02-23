@@ -32,10 +32,10 @@ config = configparser.ConfigParser(strict=False)
 config.read(inifile)
 
 ## SPINDLE ROTARY JOINT LETTERS
-# spindle primary joint
-joint_letter_primary = 'B'
-# spindle secondary joint (ie the one closer to the tool)
-joint_letter_secondary = 'C'
+# table joint
+joint_letter_primary = (config['TWP']['PRIMARY']).capitalize()
+# spindle joint (ie the one closer to the tool)
+joint_letter_secondary = (config['TWP']['SECONDARY']).capitalize()
 # get the MIN/MAX limits of the respective rotary joint letters
 category = 'AXIS_' +  joint_letter_primary
 primary_min_limit = float(config[category]['MIN_LIMIT'])
@@ -47,47 +47,40 @@ secondary_max_limit = float(config[category]['MAX_LIMIT'])
 ## CONNECTIONS TO THE KINEMATIC COMPONENT
 # get the name of the kinematic component (this seems to ingest also the next line)
 kins_comp = (config['KINS']['KINEMATICS']).partition('\n')[0]
-kins_nutation_angle = kins_comp + '.nut-angle'
-kins_table_angle = kins_comp + '.table-angle'
-kins_virtual_rotation = kins_comp + '.virtual-rot'
+kins_virtual_rotation = kins_comp + '.pre-rot'
 kins_offset_x  = kins_comp + '.x-offset'
-kins_offset_z  = kins_comp + '.z-offset'
-kins_rot_point_abs_x  = kins_comp + '.x-rot-point'
-kins_rot_point_abs_y  = kins_comp + '.y-rot-point'
-kins_rot_point_abs_z  = kins_comp + '.z-rot-point'
-
+kins_rot_axis_abs_x  = kins_comp + '.x-rot-axis'
+kins_rot_axis_abs_y  = kins_comp + '.y-rot-axis'
+kins_primary_rotation = kins_comp + '.primary-angle'
+kins_secondary_rotation = kins_comp + '.secondary-angle'
 
 # defines the kinematic model for (world <-> tool) coordinates of the machine at hand
 # returns 4x4 transformation matrix for given angles and 4x4 input matrix
 # NOTE: these matrices must be the same as the ones used to derive the kinematic model
-def kins_calc_transformation_matrix(theta_1, theta_2, virtual_rot, matrix_in, direction='fwd'):
+def kins_calc_transformation_matrix(theta_1, theta_2, virtual_rot, matrix_in, direction='fwd'): # expects radians
     global kins_nutation_angle
     T_in = matrix_in
-    # Note that on a real machine setup the x axis retains its orientation regardless of table-angle
-    # however in the kinematic model it rotates with the table angle hence we compensate this by
-    # subtracting the table_angle from the passed secondary angle as explained in the documentation
-    theta_2 = theta_2 - radians(hal.get_value(kins_table_angle))
     # Define 4x4 transformation for virtual rotation around z to orient tool-x and -y
-    Swc = sin(virtual_rot)
-    Cwc = cos(virtual_rot)
-    Rwc=np.matrix([[ Cwc, -Swc, 0, 0],
-                   [ Swc,  Cwc, 0, 0],
+    Stc = sin(virtual_rot)
+    Ctc = cos(virtual_rot)
+    Rtc=np.matrix([[ Ctc, -Stc, 0, 0],
+                   [ Stc,  Ctc, 0, 0],
                    [ 0 ,  0 ,   1, 0],
                    [ 0,   0 ,   0, 1]])
 
-    ## Define 4x4 transformation for the primary joint
+    ## Define 4x4 transformation for the table joint
     # get the basic 3x3 rotation matrix (returns array)
-    Rp = Ry(-theta_1)
+    Rw = Rz(theta_1)
     # add fourth column on the right
-    Rp = np.hstack((Rp, [[0],[0],[0]]))
+    Rw = np.hstack((Rw, [[0],[0],[0]]))
     # expand to 4x4 array and make into a matrix
     row_4 = [0,0,0,1]
-    Rp = np.vstack((Rp, row_4))
-    Rp = np.asmatrix(Rp)
+    Rw = np.vstack((Rw, row_4))
+    Rw = np.asmatrix(Rw)
 
-    ## Define 4x4 transformation matrix for the secondary joint
+    ## Define 4x4 transformation matrix for the spindle joint
     # get the basic 3x3 rotation matrix (returns array)
-    Rs = Rz(theta_2)
+    Rs = Ry(theta_2)
     # add fourth column on the right
     Rs = np.hstack((Rs, [[0],[0],[0]]))
     # expand to 4x4 array and make into a matrix
@@ -96,40 +89,23 @@ def kins_calc_transformation_matrix(theta_1, theta_2, virtual_rot, matrix_in, di
     Rs = np.asmatrix(Rs)
 
     Dx = hal.get_value(kins_offset_x)
-    Dz = hal.get_value(kins_offset_z)
+
     # define the forward transformation for the geometric offsets
     To=np.matrix([[ 1, 0, 0,  Dx],
                   [ 0, 1, 0,  0 ],
-                  [ 0, 0, 1,  Dz],
+                  [ 0, 0, 1,  0 ],
                   [ 0, 0, 0,  1 ]])
     # define the inverse transformation for the geometric offsets
     Tio=np.matrix([[ 1, 0, 0,  -Dx],
                    [ 0, 1, 0,  0 ],
-                   [ 0, 0, 1,  -Dz],
+                   [ 0, 0, 1,  0 ],
                    [ 0, 0, 0,  1 ]])
 
-    # Additional definitions for nutating joint
-    u = radians(hal.get_value(kins_table_angle))
-    Su = sin(u)
-    Cu = cos(u)
-    v = radians(hal.get_value(kins_nutation_angle))
-    Sv = sin(v)
-    Cv = cos(v)
-    Sp = sin(theta_1)
-    Cp = cos(theta_1)
-    r = Cp + Sv*Sv*(1-Cp)
-    s = Cp + Cv*Cv*(1-Cp)
-    t = -Sv*Cv*(1-Cp)
-    # define rotation matrix for the secondary spindle joint
-    Rp=np.matrix([[  Cp*Cu + Cv*Sp*Su,  Cu*Cv*Sp - Cp*Su,  Sv*Sp, 0],
-                  [ -Cu*Cv*Sp + Su*r ,  Cv*Sp*Su + Cu*r ,      t, 0],
-                  [ -Cu*Sv*Sp + Su*t ,  Su*Sv*Sp + Cu*t ,      s, 0],
-                  [          0       ,      0           ,      0, 1]])
 
     # calculate the transformation matrix for the forward tool kinematic
-    matrix_tool_fwd = Rs*To*Rp*Rwc*T_in
+    matrix_tool_fwd = Rw*T_in*To*Rs*Rtc
     # calculate the transformation matrix for the inverse tool kinematic
-    matrix_tool_inv = np.transpose(Rwc)*np.transpose(Rp)*Tio*np.transpose(Rs)*T_in
+    matrix_tool_inv = np.transpose(Rtc)*np.transpose(Rs)*T_in*np.transpose(Rw)
     if direction == 'fwd':
         #log.debug("matrix tool fwd: \n", matrix_tool_fwd)
         #log.debug("inv would have been: \n", matrix_tool_inv)
@@ -142,139 +118,122 @@ def kins_calc_transformation_matrix(theta_1, theta_2, virtual_rot, matrix_in, di
         return 0
 
 
-# calculates the secondary joint position for a given tool-vector
-# secondary being the joint closest to the tool
+# calculates the spindle joint position for a given Z-vector
 # Note: this uses functions derived from the custom kinematic
-def kins_calc_secondary(z_vector_req, x_vector_req, theta_1_list=[]):
+def kins_calc_spindle(log, z_vector_req, x_vector_req):
     global secondary_min_limit, secondary_max_limit
     global kins_nutation_angle
     epsilon = 0.000001
-    theta_2_list=[]
+    theta_sec_list=[]
     (Kzx, Kzy, Kzz) = (z_vector_req[0], z_vector_req[1], z_vector_req[2])
-    (Kxx, Kxy, Kxz) = (x_vector_req[0], x_vector_req[1], x_vector_req[2])
-    u = radians(hal.get_value(kins_table_angle))
-    Su = sin(u)
-    Cu = cos(u)
-    v = radians(hal.get_value(kins_nutation_angle))
-    Sv = sin(v)
-    Cv = cos(v)
-    for i in range(len(theta_1_list)):
-        theta_1 = theta_1_list[i]
-        Sp  = sin(theta_1)
-        Cp  = cos(theta_1)
-        if Cp == 1:
-            theta_2 = atan2(Kxy, Kxx)
-            theta_2_list.append(theta_2)
-            theta_2_list.append(-theta_2)
-        else:
-            r = Cp + Sv*Sv*(1-Cp)
-            s = Cp + Cv*Cv*(1-Cp)
-            t = -Sv*Cv*(1-Cp)
-            for i in range(len(theta_1_list)):
-                theta_1 = theta_1_list[i]
-                Sp  = sin(theta_1)
-                Cp  = cos(theta_1)
-                a = t
-                b = Sv*Sp
-                c = Kzy
-                r = sqrt(a*a + b*b)
-                theta_minus_phi= [acos(c/r), -acos(c/r)]
-                phi = atan2(b,a)
-                # we also need to check for limit violations
-                for result in theta_minus_phi:
-                    for theta in [result + phi, result - phi]:
-                        if theta > secondary_min_limit and theta < secondary_max_limit:
-                            theta_2_list.append(theta + u)
-
-    return theta_2_list
+    theta_sec = acos(Kzz)
+    # since we are using acos() we really have two solutions theta_1 and -theta_1
+    # we also need to check for limit violations
+    for theta in [theta_sec, -theta_sec]:
+        log.debug(f'    Checking possible secondary angle {degrees(theta):.4f}° for limit violations.')
+        if degrees(theta) > secondary_min_limit and degrees(theta) < secondary_max_limit:
+                theta_sec_list.append(theta)
+    return theta_sec_list # returns radians
 
 
 # calculates the primary joint position for a given tool-vector
 # Note: this uses functions derived from the custom kinematic
-def kins_calc_primary(z_vector_req, x_vector_req, theta_2_list=[]):
+def kins_calc_table(log, z_vector_req, x_vector_req, theta_sec_list):
     global primary_min_limit, primary_max_limit
     global kins_nutation_angle
     epsilon = 0.000001
-    theta_1_list=[]
+    if theta_sec_list == None:
+        return (None, None)
+    theta_prim_list=[]
     (Kzx, Kzy, Kzz) = (z_vector_req[0], z_vector_req[1], z_vector_req[2])
-    u = radians(hal.get_value(kins_table_angle))
-    Su = sin(u)
-    Cu = cos(u)
-    v = radians(hal.get_value(kins_nutation_angle))
-    Sv = sin(v)
-    Cv = cos(v)
-    # This kinematics nutation angle restricts the negative range of Kzz
-    if Kzz < 2*Cv*Cv - 1:
-        print('remap_funcs: Requested orientation not reachable with the current nutation angle!')
-    else:
-        u = radians(hal.get_value(kins_table_angle))
-        Su = sin(u)
-        Cu = cos(u)
-        v = radians(hal.get_value(kins_nutation_angle))
-        Sv = sin(v)
-        Cv = cos(v)
-        theta_1 = acos((Kzz - Cv*Cv) / (1-Cv*Cv))
-        # since we are using acos() we really have two solutions theta_1 and -theta_1
-        # we also need to check for limit violations
-        for theta in [theta_1, -theta_1]:
-            if degrees(theta) > primary_min_limit and degrees(theta) < primary_max_limit:
-                theta_1_list.append(theta)
-
-    return theta_1_list
+    for theta_sec in theta_sec_list:
+        # This kinematics has infinite solutions if the spindle is vertical so we set the table to 0°
+        if theta_sec == 0:
+            return [0]
+        else:
+            Ss = sin(theta_sec)
+            theta_prim = acos(Kzx/Ss)
+            # since we are using asin() we really have two solutions theta_1 and pi-theta_2
+            for theta in [theta_prim, -theta_prim]:
+                log.debug(f'    Checking possible primary angle {degrees(theta):.4f}° for limit violations.')
+                if degrees(theta) > primary_min_limit and degrees(theta) < primary_max_limit:
+                    theta_prim_list.append(theta)
+    return theta_prim_list # returns radians
 
 
 # define the order in which the joint angles need to be calculated
-def kins_calc_possible_joint_angles(z_vector_req, x_vector_req):
+def kins_calc_possible_joint_angles(log, z_vector_req, x_vector_req):
     try:
-        theta_1_calcd = kins_calc_primary(z_vector_req, x_vector_req)
+        theta_2_calcd = kins_calc_spindle(log, z_vector_req, x_vector_req)
     except Exception as error:
-        print('kins_calc_jnt_angles, kins_calc_primary, %s', error)
+        log.error('kins_calc_jnt_angles, kins_calc_spindle, %s', error)
+    if theta_2_calcd == None:
+        return (None, None)
     try:
-        theta_2_calcd = kins_calc_secondary(z_vector_req, x_vector_req, theta_1_calcd)
+        theta_1_calcd = kins_calc_table(log, z_vector_req, x_vector_req, theta_2_calcd)
     except Exception as error:
-        print('kins_calc_jnt_angles, kins_calc_secondary, %s', error)
-    return (theta_1_calcd, theta_2_calcd)
+        log.error('kins_calc_jnt_angles, kins_calc_table, %s', error)
+    return (theta_1_calcd, theta_2_calcd) # returns radians
 
 
 # calculate the transformed work offset used after 53.n
 def kins_calc_transformed_work_offset(current_offset, twp_offset, theta_1, theta_2, virtual_rot):
-    kins_rot_point_abs = (hal.get_value(kins_rot_point_abs_x),
-                          hal.get_value(kins_rot_point_abs_y),
-                          hal.get_value(kins_rot_point_abs_z))
-    work_offset_from_cntr_rot_table = tuple(np.subtract(current_offset, kins_rot_point_abs))
-    tot_offset_pre = tuple(np.add(work_offset_from_cntr_rot_table, twp_offset))
+    # in this kinematic we need to keep in mind that we have rotations in the spindle and the table
+    current_offset_incl_twp = tuple(np.add(current_offset, twp_offset))
+    kins_rot_axis_abs = (hal.get_value(kins_rot_axis_abs_x),
+                         hal.get_value(kins_rot_axis_abs_y),
+                         0)
+    work_offset_from_cntr_rot_table = tuple(np.subtract(current_offset_incl_twp, kins_rot_axis_abs))
+
+    ## Define 4x4 transformation for the table joint
+    # get the basic 3x3 rotation matrix (returns array)
+    Rw = Rz(-theta_1)
+    # add fourth column on the right
+    Rw = np.hstack((Rw, [[0],[0],[0]]))
+    # expand to 4x4 array and make into a matrix
+    row_4 = [0,0,0,1]
+    Rw = np.vstack((Rw, row_4))
+    Rw = np.asmatrix(Rw)
+
+    table_rot_offset = matrix_to_point(Rw*point_to_matrix(work_offset_from_cntr_rot_table))
+    diff_table_rot_offset = tuple(np.subtract(table_rot_offset, work_offset_from_cntr_rot_table))
+    offset_pre_trans =  tuple(np.add(current_offset_incl_twp, diff_table_rot_offset))
     P = matrix_to_point(kins_calc_transformation_matrix(theta_1,
                                                         theta_2,
                                                         virtual_rot,
-                                                        point_to_matrix(tot_offset_pre),
+                                                        point_to_matrix(offset_pre_trans),
                                                         'inv'))
-    transformed_offset = tuple(np.add((P[0], P[1], P[2]), kins_rot_point_abs))
+    transformed_offset = (P[0], P[1], P[2])
     return transformed_offset
 
 
 # pass required values to the kinematics component
-def kins_set_values(theta_1, theta_2, virtual_rot):
-    hal.set_p(kins_virtual_rotation, str(-virtual_rot))
+def kins_set_values(theta_1, theta_2, virtual_rot): # expects radians
+    hal.set_p(kins_virtual_rotation, str(virtual_rot))
+    hal.set_p(kins_primary_rotation, str(theta_1))
+    hal.set_p(kins_secondary_rotation, str(theta_2))
 
 
 # oriented x-vector should point in the machine x direction
 def kins_calc_virtual_rot_get_values(x_vector_requested, z_vector_requested, twp_matrix):
-    x_vector_requested = (1,0,0)
-    z_vector_requested = None
-    matrix_in = twp_matrix
-    return (x_vector_requested, z_vector_requested, matrix_in)
+    x_vector_requested = [twp_matrix[0,0],twp_matrix[1,0],twp_matrix[2,0]]
+    z_vector_requested = [twp_matrix[0,2],twp_matrix[1,2],twp_matrix[2,2]]
+    matrix_in = np.asmatrix(np.identity(4))
+    direction = 'fwd'
+    return (x_vector_requested, z_vector_requested, matrix_in, direction)
 
 
 # This just returns zero for a kinematic with pure work side rotation
 def kins_calc_virtual_rot_for_g683(theta_1, theta_2):
+    # TODO
     return 0
 
 
-# If the operator has requested a rotation by passing an R word in the 68.n command we need to 
+# If the operator has requested a rotation by passing an R word in the 68.n command we need to
 # create a rotation matrix that represents a rotation around the Z-axis of the TWP plane
-def kins_calc_twp_origin_rot_matrix(r):
+def kins_calc_twp_origin_rot_matrix(r): # expects radians
     # we use z rotation to create the rotation matrix for the requested origin rotation
-    twp_origin_rot_matrix = Rz(radians(r))
+    twp_origin_rot_matrix = Rz(r)
 
     return twp_origin_rot_matrix
 
@@ -288,7 +247,7 @@ def kins_calc_transformation_get_direction():
 # returns the pin name for the virtual rotation in the kinematics component
 def kins_get_current_virtual_rot():
     current_virtual_rot = hal.get_value(kins_virtual_rotation)
-    return current_virtual_rot
+    return current_virtual_rot # returns radians
 
 
 
@@ -308,8 +267,6 @@ def point_to_matrix(point):
 def matrix_to_point(matrix):
     point = (matrix[0,3],matrix[1,3],matrix[2,3])
     return point
-
-
 
 
 # this is from 'mika-s.github.io'
@@ -344,4 +301,3 @@ def Rz(th):
    return np.array([[cos(th), -sin(th), 0],
                     [sin(th),  cos(th), 0],
                     [0      ,  0      , 1]])
-

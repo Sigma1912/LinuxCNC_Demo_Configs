@@ -27,7 +27,7 @@ from twp_vismach import *
 # Machine zero as measured from center surface of the rotary c table
 machine_zero_x = -1000
 machine_zero_y =  1000
-machine_zero_z =  2000
+machine_zero_z =  1000
 
 '''
 try: # Expect files in working directory
@@ -455,7 +455,7 @@ work_piece = BoxCenteredXY(600, 600, 600)
 #work_piece = Translate([work_piece],0,0,0)
 work_piece = Color([0.5,0.5,0.5,0.9], [work_piece])
 # move the workpiece
-work_piece = Translate([work_piece],0,300,300)
+work_piece = Translate([work_piece],0,300,700)
 work_piece = HalShow([work_piece],c,1,"hide_work_piece_1",0,1)
 # create a block that holds the rotary a table
 rotary_table_housing = Color([0.2,0.2,0.2,0],[BoxCenteredXY(2000, 2000, -1000)])
@@ -464,7 +464,7 @@ rotary_table_housing = Translate([rotary_table_housing],0,0,-20)
 # create rotary_table_a
 rotary_table_a = Color([0.1,0.7,0.9,0],[CylinderZ(0,920,-800,920)])
 # create 'slots' in x and y on the rotary table
-table_console = Color([0.5,0.5,0.5,0.9],[BoxCenteredXY(1840, 200, 1200)])
+table_console = Color([0.5,0.5,0.5,0.9],[BoxCenteredXY(1840, 200, 2000)])
 # move so the surface is on the rotation axis
 table_console = Translate([table_console],0,-100,0)
 slot_z_w = Color([1,1,1,1],[BoxCenteredXY(10, 1840, 0.9)])
@@ -488,7 +488,7 @@ rotary_table_a = Collection([
 rotary_table_a = Rotate([rotary_table_a],90,0,1,0)
 # rotate so the table_console is horizontal
 rotary_table_a = Rotate([rotary_table_a],90,1,0,0)
-rotary_table_a = Translate([rotary_table_a ],-1700,0,0)
+rotary_table_a = Translate([rotary_table_a ],-1000,0,0)
 
 # rotate the tcp coords with the rotary table
 work_coords_tcp = HalRotate([work_coords_tcp],c,"rotary_a",-1,1,0,0)

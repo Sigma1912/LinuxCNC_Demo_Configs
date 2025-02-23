@@ -1,4 +1,4 @@
-;M430 by remap: kinstype==2 Tool kinematics
+;M430 by remap: kinstype==2 TWP
 o<430remap>sub
   #<kinstype> = 2
   #<SWITCHKINS_PIN> = 3  ; set N as required: motion.analog-out-0N

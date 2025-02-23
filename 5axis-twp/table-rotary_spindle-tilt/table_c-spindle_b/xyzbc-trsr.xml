@@ -27,7 +27,7 @@
       <text>"TWP"</text>
       <bd>3</bd>
     </button>
-</labelframe>
+  </labelframe>
   </vbox>
 
 <!-- create a space to the next element -->
@@ -44,82 +44,71 @@
   <labelframe text="Joint position">
     <font>("Helvetica",12)</font>
     <hbox>
-	<vbox>
-	    <hbox>
-	    <label>
-	       <text>"0: "</text>
-	       <font>("Helvetica",10)</font>
-	    </label>
-	    <number>
-	       <halpin>"joint0"</halpin>
-	       <font>("Helvetica",10)</font>
-	       <format>"4.4f"</format>
-	      </number>
-	   </hbox>
-	   <hbox>
-	    <label>
-	       <text>"1: "</text>
-	       <font>("Helvetica",10)</font>
-	    </label>
-	    <number>
-	       <halpin>"joint1"</halpin>
-	       <font>("Helvetica",10)</font>
-	       <format>"4.4f"</format>
-	      </number>
-	   </hbox>
-	   <hbox>
-	    <label>
-	       <text>"2: "</text>
-	       <font>("Helvetica",10)</font>
-	    </label>
-	    <number>
-	       <halpin>"joint2"</halpin>
-	       <font>("Helvetica",10)</font>
-	       <format>"4.4f"</format>
-	      </number>
-	    </hbox>
-	</vbox>
-	<vbox>
-	    <label>
-	       <text>"              "</text>
-       <font>("Helvetica",10)</font>
-	    </label>
-	</vbox>
-	<vbox>
-	    <hbox>
-	    <label>
-	       <text>"3: "</text>
-	       <font>("Helvetica",10)</font>
-	    </label>
-	    <number>
-	       <halpin>"joint3"</halpin>
-	       <font>("Helvetica",10)</font>
-	       <format>"4.4f"</format>
-	      </number>
-	   </hbox>
-	   <hbox>
-	    <label>
-	       <text>"4: "</text>
-	       <font>("Helvetica",10)</font>
-	    </label>
-	    <number>
-	       <halpin>"joint4"</halpin>
-	       <font>("Helvetica",10)</font>
-	       <format>"4.4f"</format>
-	      </number>
-	   </hbox>
-	   <hbox>
-	    <label>
-	       <text>"5: "</text>
-	       <font>("Helvetica",10)</font>
-	    </label>
-	    <number>
-	       <halpin>"joint5"</halpin>
-	       <font>("Helvetica",10)</font>
-	       <format>"4.4f"</format>
-	      </number>
-	    </hbox>
-	</vbox>
+        <vbox>
+            <hbox>
+            <label>
+               <text>"0: "</text>
+               <font>("Helvetica",10)</font>
+            </label>
+            <number>
+               <halpin>"joint0"</halpin>
+               <font>("Helvetica",10)</font>
+               <format>"4.4f"</format>
+              </number>
+           </hbox>
+           <hbox>
+            <label>
+               <text>"1: "</text>
+               <font>("Helvetica",10)</font>
+            </label>
+            <number>
+               <halpin>"joint1"</halpin>
+               <font>("Helvetica",10)</font>
+               <format>"4.4f"</format>
+              </number>
+           </hbox>
+           <hbox>
+            <label>
+               <text>"2: "</text>
+               <font>("Helvetica",10)</font>
+            </label>
+            <number>
+               <halpin>"joint2"</halpin>
+               <font>("Helvetica",10)</font>
+               <format>"4.4f"</format>
+              </number>
+            </hbox>
+        </vbox>
+        <vbox>
+            <label>
+               <text>"              "</text>
+               <font>("Helvetica",10)</font>
+            </label>
+        </vbox>
+        <vbox>
+            <hbox>
+            <label>
+               <text>"3: "</text>
+               <font>("Helvetica",10)</font>
+            </label>
+            <number>
+               <halpin>"joint3"</halpin>
+               <font>("Helvetica",10)</font>
+               <format>"4.4f"</format>
+              </number>
+           </hbox>
+           <hbox>
+            <label>
+               <text>"4: "</text>
+               <font>("Helvetica",10)</font>
+            </label>
+            <number>
+               <halpin>"joint4"</halpin>
+               <font>("Helvetica",10)</font>
+               <format>"4.4f"</format>
+              </number>
+           </hbox>
+        </vbox>
      </hbox>
   </labelframe>
   </vbox>
@@ -184,38 +173,6 @@
     <font>("Helvetica",12)</font>
     <hbox>
     <label>
-       <text>"nutation-angle:   "</text>
-       <font>("Helvetica",10)</font>
-    </label>
-    <scale>
-	<font>("Helvetica",10)</font>
-	<width>"12"</width>
-	<halpin>"nut-angle"</halpin>
-	<resolution>1</resolution>
-	<orient>HORIZONTAL</orient>
-	<initval>55</initval>
-	<min_>0</min_>
-	<max_>90</max_>
-    </scale>
-    </hbox>
-    <hbox>
-    <label>
-       <text>"x-pivot-length:   "</text>
-       <font>("Helvetica",10)</font>
-    </label>
-    <scale>
-	<font>("Helvetica",10)</font>
-	<width>"12"</width>
-	<halpin>"x-pivot"</halpin>
-	<resolution>1</resolution>
-	<orient>HORIZONTAL</orient>
-	<initval>50</initval>
-	<min_>0</min_>
-	<max_>300</max_>
-    </scale>
-    </hbox>
-    <hbox>
-    <label>
        <text>"z-pivot-length:   "</text>
        <font>("Helvetica",10)</font>
     </label>
@@ -225,7 +182,7 @@
 	<halpin>"z-pivot"</halpin>
 	<resolution>1</resolution>
 	<orient>HORIZONTAL</orient>
-	<initval>120</initval>
+	<initval>200</initval>
 	<min_>0</min_>
 	<max_>300</max_>
     </scale>
@@ -236,30 +193,14 @@
        <font>("Helvetica",10)</font>
     </label>
     <scale>
-	<font>("Helvetica",10)</font>
-	<width>"12"</width>
-	<halpin>"x-offset"</halpin>
-	<resolution>1</resolution>
-	<orient>HORIZONTAL</orient>
-	<initval>0</initval>
-	<min_>-20</min_>
-	<max_>20</max_>
-    </scale>
-    </hbox>
-    <hbox>
-    <label>
-       <text>"y-offset:   "</text>
-       <font>("Helvetica",10)</font>
-    </label>
-    <scale>
-	<font>("Helvetica",10)</font>
-	<width>"12"</width>
-	<halpin>"y-offset"</halpin>
-	<resolution>1</resolution>
-	<orient>HORIZONTAL</orient>
-	<initval>0</initval>
-	<min_>-20</min_>
-	<max_>40</max_>
+        <font>("Helvetica",10)</font>
+        <width>"15"</width>
+        <halpin>"x-offset"</halpin>
+        <resolution>1</resolution>
+        <orient>HORIZONTAL</orient>
+        <initval>50</initval>
+        <min_>-250</min_>
+        <max_>250</max_>
     </scale>
     </hbox>
     <hbox>
@@ -268,28 +209,13 @@
        <text>" "</text>
     </label>
     </hbox>
-    <hbox>
-    <label>
-       <text>"Use hover + mouse wheel to change values"</text>
-       <font>("Helvetica",6)</font>
-    </label>
-    </hbox>
   </labelframe>
-  </vbox>
-<!-- create a space to the next element -->
-  <vbox>
-    <hbox>
-    <label>
-       <text>" "</text>
-       <font>("Helvetica",4)</font>
-    </label>
-    </hbox>
   </vbox>
 
   <vbox>
-  <labelframe text="Table B Rotation Axis Offset">
+  <labelframe text="Table Rotation Axis Offset">
     <font>("Helvetica",12)</font>
-    <hbox>
+     <hbox>
     <label>
        <font>("Helvetica",8)</font>
        <text>" "</text>
@@ -304,7 +230,7 @@
     <hbox>
     <label>
        <font>("Helvetica",8)</font>
-       <text>" x:  1000\n z:  -1000"</text>
+       <text>"x:  1000\n y: -1000"</text>
     </label>
     </hbox>
     <hbox>
@@ -326,29 +252,29 @@
     </label>
     <scale>
         <font>("Helvetica",10)</font>
-        <width>"12"</width>
+        <width>"15"</width>
         <halpin>"x-rot-axis"</halpin>
         <resolution>1</resolution>
         <orient>HORIZONTAL</orient>
         <initval>1000</initval>
-        <min_>100</min_>
-        <max_>1900</max_>
+        <min_>950</min_>
+        <max_>1050</max_>
     </scale>
     </hbox>
     <hbox>
     <label>
-       <text>"z-rot-axis:   "</text>
+       <text>"y-rot-axis:   "</text>
        <font>("Helvetica",10)</font>
     </label>
     <scale>
         <font>("Helvetica",10)</font>
-        <width>"12"</width>
-        <halpin>"z-rot-axis"</halpin>
+        <width>"15"</width>
+        <halpin>"y-rot-axis"</halpin>
         <resolution>1</resolution>
         <orient>HORIZONTAL</orient>
         <initval>-1000</initval>
-        <min_>-1900</min_>
-        <max_>-100</max_>
+        <min_>-1050</min_>
+        <max_>-950</max_>
     </scale>
     </hbox>
     <hbox>
