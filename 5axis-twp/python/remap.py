@@ -51,7 +51,7 @@ config.read(inifile)
 
 # debug setting
 try:
-    debug_setting = int(config['TWP']['debug'])
+    debug_setting = int(config['TWP']['LOG_LEVEL'])
     if debug_setting > 4: debug_setting = 4
     if debug_setting < 0: debug_setting = 0
 except Exception as error:

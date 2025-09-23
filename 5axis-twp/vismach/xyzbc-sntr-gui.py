@@ -18,11 +18,11 @@ try: # Expect files in working directory
 
 except Exception as detail:
     print(detail)
-    raise SystemExit("xyzbc-trsr-gui requires stl files in working directory")
+    raise SystemExit("xyzbc-sntr-gui requires stl files in working directory")
 
 for setting in sys.argv[1:]: exec(setting)
 
-c = hal.component("xyzbc-trsr-gui")
+c = hal.component("xyzbc-sntr-gui")
 # axis_x
 c.newpin("axis_x", hal.HAL_FLOAT, hal.HAL_IN)
 # axis_y
@@ -35,10 +35,13 @@ c.newpin("rotary_a", hal.HAL_FLOAT, hal.HAL_IN)
 c.newpin("rotary_b", hal.HAL_FLOAT, hal.HAL_IN)
 # rotary_c
 c.newpin("rotary_c", hal.HAL_FLOAT, hal.HAL_IN)
+# nutation-angle
+c.newpin("nutation_angle", hal.HAL_FLOAT, hal.HAL_IN)
 # tool offsets
 c.newpin("tool_length", hal.HAL_FLOAT, hal.HAL_IN)
 c.newpin("tool_diameter", hal.HAL_FLOAT, hal.HAL_IN)
 # geometric offsets in the spindle-rotary-assembly
+c.newpin("pivot_y", hal.HAL_FLOAT, hal.HAL_IN)
 c.newpin("pivot_z", hal.HAL_FLOAT, hal.HAL_IN)
 c.newpin("offset_x", hal.HAL_FLOAT, hal.HAL_IN)
 c.newpin("offset_z", hal.HAL_FLOAT, hal.HAL_IN)
@@ -135,8 +138,19 @@ class HalSpindleHousingY(CylinderY):
 
     def coords(self):
         r = 140
-        length = 0
+        length = c.pivot_y
         return length, r, 0, r
+
+# used to create an indicator for the variable 'pivot_y'
+class HalPivotY(CylinderY):
+    def __init__(self, comp, *args):
+        CylinderZ.__init__(self, *args)
+        self.comp = c
+
+    def coords(self):
+        r = 2
+        length = -c.pivot_y
+        return length, r, 0, 1
 
 # used to create an indicator for the variable 'pivot_z'
 class HalPivotZ(CylinderZ):
@@ -159,8 +173,8 @@ class HalOffsetX(CylinderX):
 
     def coords(self):
         r = 2
-        length = -c.offset_x
-        return length, r, 0, 1
+        length = c.offset_x
+        return length, 1, 0, r
 
 # used to create an indicator for the variable 'offset_z'
 class HalOffsetZ(CylinderZ):
@@ -204,6 +218,23 @@ class Point(Collection):
                       Color(color,[CylinderZ(-l,r,l,r)],1)
                      ]
 
+# used to rotate parts around the nutation axis
+class HalRotateNutation(HalVectorRotate):
+    def __init__(self, parts, comp, var, th, x, y, z):
+        HalVectorRotate.__init__(self, parts, comp, var, th, x, y, z)
+        self.parts = parts
+        self.comp = c
+        self.var = var
+        self.th = th
+
+    def get_values(self):
+        th = self.th
+        x = 0
+        y = th*sin(radians(c.nutation_angle))
+        z = th*cos(radians(c.nutation_angle))
+
+        return th, x, y, z
+
 #indicators
 # create vismach coordinates to show the origin during construction of the model
 vismach_coords = CoordSystem(c,2,5000)
@@ -215,8 +246,8 @@ abs_coords = HalScale([abs_coords],c,1,1,1,"scale_coords")
 work_coords = CoordSystem(c,2,100)
 work_coords = HalScale([work_coords],c,1,1,1,"scale_coords")
 # rotate to match the current tool orientation
-work_coords = HalRotate([work_coords],c,"rotary_a",1,0,1,1)
-work_coords = HalRotate([work_coords],c,"rotary_b",1,0,1,0)
+work_coords = HalRotateNutation([work_coords],c,"rotary_b",1,0,0,0)
+
 # move the  work offset by the work_offset
 work_coords = HalVectorTranslate([work_coords],c,"twp_ox_world","twp_oy_world","twp_oz_world")
 # create a visual indicator for the position of the control point
@@ -261,6 +292,21 @@ rot_axis = Color([1,1,0.3,1],[CylinderZ(0,2,2000,2)])
 rot_axis= Translate([rot_axis], machine_zero_x, machine_zero_y, 0)
 # now move it to the position set by the user
 rot_axis = HalVectorTranslate([rot_axis],c,"rot_axis_x","rot_axis_y",0)
+
+# create an indicator for x-offset
+ind_offset_x =  Color([1,0,0,1],[HalOffsetX(c)])
+# move the offset_x indicator so it extends from the pivot point
+ind_offset_x = HalVectorTranslate([ind_offset_x],c,0,"pivot_y","pivot_z",1)
+# create an indicator for z-offset
+ind_offset_z =  Color([0,1,1,1],[HalOffsetZ(c)])
+ind_offset_z = HalTranslate([ind_offset_z],c,"offset_x", -1,0,0)
+# create an indicator for the variable pivot_z
+ind_pivot_z = Color([0,0,0.75,1],[HalPivotZ(CylinderZ)])
+# create the spindle housing that contains the spindle
+# create an indicator for the variable pivot_y
+ind_pivot_y = Color([0,0.75,0,1],[HalPivotY(CylinderY)])
+# move the pivot_y indicator so it extends from the pivot point
+ind_pivot_y = HalVectorTranslate([ind_pivot_y],c,0,"pivot_y","pivot_z",1)
 #/indicators
 
 #tool-side
@@ -279,9 +325,6 @@ tool = Collection([
        ind_tool_offset
        ])
 tool = Color([1,0,1,0], [tool] )
-# create an indicator for the variable pivot_z
-ind_pivot_z = Color([0,0,0.75,1],[HalPivotZ(CylinderZ)])
-# create the spindle housing that contains the spindle
 spindle_housing = Collection([
                   # spindle
                   Color([0.7,0.7,0,1],[CylinderZ(0,50,50,100)]),
@@ -293,18 +336,26 @@ spindle_housing = HalShow([spindle_housing],c,True,"hide_spindle_body",0,1)
 spindle_housing = Collection([
                   tool,
                   spindle_housing,
-                  ind_pivot_z
+                  ind_pivot_z,
+                  ind_offset_x,
+                  ind_offset_z,
                   ])
-# move the spindle and it's vertical housing by the values set for the pivot lengths
-# so the vismach origin is in the pivot point
-spindle_housing = HalVectorTranslate([spindle_housing],c,0,0,"pivot_z",-1)
+
 spindle_housing_horizontal = Color([0.7,0.7,0,1],[HalSpindleHousingY(c)])
+# move farther up by the pivot_z value
+spindle_housing_horizontal = HalVectorTranslate([spindle_housing_horizontal],c,0,0,"pivot_z",1)
+# make it hidable
 spindle_housing_horizontal = HalShow([spindle_housing_horizontal],c,True,"hide_spindle_body",0,1)
 
 spindle_housing = Collection([
                   spindle_housing,
-                  spindle_housing_horizontal
+                  spindle_housing_horizontal,
+                  ind_pivot_y
                   ])
+# move the spindle and it's vertical housing by the values set for the pivot lengths
+# so the vismach origin is in the pivot point
+spindle_housing = HalVectorTranslate([spindle_housing],c,0,"pivot_y","pivot_z",-1)
+
 # create a visual for the position of the spindle A,B pivot-point
 ind_pivot_point = Collection([
                   Color([1,1,1,1],[CylinderX(-200,1,200,1)]),
@@ -315,22 +366,31 @@ ind_pivot_point = Collection([
                   # sphere for the actual pivot point
                   Color([1,1,0.3,1],[Sphere(0,0,0,5)])
                   ])
+# rotate the indicator for the pivot point to the nutation angle, 90° should have the nutation axis in the horizontal plane
+ind_pivot_point = Rotate([ind_pivot_point],-90,-1,0,0)
+ind_pivot_point = HalRotate([ind_pivot_point],c,"nutation_angle",-1,1,0,0)
+# create HAL-link for b-axis rotational joint"
+ind_pivot_point = HalRotateNutation([ind_pivot_point],c,"rotary_b",1,0,-1,0)
+
 # create nutation joint  for the spindle housing
 spindle_housing_nut = Collection([
                       Color([0.7,0.7,0,1],[CylinderY(0,145,-70,145)]),
                       Color([0.7,0.7,0,1],[CylinderY(-70,145,-150,60)])
                       ])
-# rotate the nutation joint to the nutation angle
-spindle_housing_nut = Rotate([spindle_housing_nut],45,1,0,0)
+# rotate the nutation joint to the nutation angle, 90° should have the nutation axis in the horizontal plane
+spindle_housing_nut = Rotate([spindle_housing_nut],-90,-1,0,0)
+spindle_housing_nut = HalRotate([spindle_housing_nut],c,"nutation_angle",-1,1,0,0)
 spindle_housing_nut = HalShow([spindle_housing_nut],c,True,"hide_spindle_body",0,1)
-spindle_housing = Collection([
-                  spindle_housing,
-                  #spindle_housing_nut
-                  ])
-# create HAL-link for a-axis rotational joint"
-spindle_housing = HalRotate([spindle_housing],c,"rotary_a",1,0,1,1)
+
 # move the joint using the offset values as set by the user in the gui panel
 spindle_housing = HalVectorTranslate([spindle_housing],c,"offset_x",0,"offset_z",-1)
+spindle_housing = Collection([
+                  spindle_housing,
+                  spindle_housing_nut
+                  ])
+# create HAL-link for b-axis rotational joint"
+spindle_housing = HalRotateNutation([spindle_housing],c,"rotary_b",1,0,-1,0)
+
 # create middle part b rotary and a nutating axis
 spindle_rotary = Collection([
                  # cylinder for b axis
@@ -342,41 +402,31 @@ spindle_rotary_nut = Collection([
                      CylinderY(0,145,70,145),
                      CylinderY(70,145,150,60)
                      ])
-# rotate the nutation joint to the nutation angle
-spindle_rotary_nut = Rotate([spindle_rotary_nut],45,1,0,0)
-# move the joint using the offset values as set by the user in the gui panel
-spindle_rotary_nut = HalVectorTranslate([spindle_rotary_nut],c,"offset_x",0,"offset_z",-1)
+# rotate the nutation joint to the nutation angle, 90° should have the nutation axis in the horizontal plane
+spindle_rotary_nut = Rotate([spindle_rotary_nut],-90,-1,0,0)
+spindle_rotary_nut = HalRotate([spindle_rotary_nut],c,"nutation_angle",-1,1,0,0)
 spindle_rotary = Collection([spindle_rotary,
-                             # spindle_rotary_nut
+                             spindle_rotary_nut
                             ])
 spindle_rotary = Color([1,0.5,0,0], [spindle_rotary] )
 spindle_rotary = HalShow([spindle_rotary],c,True,"hide_spindle_body",0,1)
 
-# create an indicator for x-offset
-ind_offset_x =  Color([1,0,0,1],[HalOffsetX(c)])
-# create an indicator for z-offset
-ind_offset_z =  Color([0,1,1,1],[HalOffsetZ(c)])
-ind_offset_z = HalTranslate([ind_offset_z],c,"offset_x", -1,0,0)
 
-# create an indicator for rotational axis A
-ind_axis_a = Color([1,1,0.3,1],[HalRotAxisA(c)])
-ind_axis_a = Rotate([ind_axis_a],135,1,0,0)
-# move the a axis indicator using the offset values as set by the user in the gui panel
-ind_axis_a =  HalVectorTranslate([ind_axis_a],c,"offset_x",0,"offset_z",-1)
+# rotate the nutation joint to the nutation angle, 90° should have the nutation axis in the horizontal plane
+spindle_rotary_nut = Rotate([spindle_rotary_nut],-90,-1,0,0)
+spindle_rotary_nut = HalRotate([spindle_rotary_nut],c,"nutation_angle",-1,1,0,0)
 spindle_rotary = Collection([
                  spindle_rotary,
-                 ind_offset_x,
-                 ind_offset_z,
-                 ind_pivot_point,
-                 ind_axis_a,
+
+                 ind_pivot_point
                  ])
 # join the two parts to a spindle assembly
 spindle_assembly = Collection([
                    spindle_housing,
                    spindle_rotary,
                    ])
-# create HAL-link for b-axis rotational joint"
-spindle_assembly = HalRotate([spindle_assembly],c,"rotary_b",1,0,1,0)
+## create HAL-link for b-axis rotational joint"
+#spindle_assembly = HalRotate([spindle_assembly],c,"rotary_b",1,0,1,0)
 # add a block for the y-axis to the spindle_assembly
 slide_yz = Color([0.6,0.8,0.3,0], [Box(-250, 200, -250, 250, 3000, 250)])
 slide_yz = HalShow([slide_yz],c,True,"hide_spindle_body",0,1)
@@ -386,7 +436,7 @@ spindle_yz = Collection([
              ])
 # move the spindle and it's vertical housing by the values set for the pivot lengths
 # so the vismach origin is in the center of the spindle nose
-spindle_yz = HalVectorTranslate([spindle_yz],c,0,0,"pivot_z")
+spindle_yz = HalVectorTranslate([spindle_yz],c,0,"pivot_y","pivot_z")
 spindle_yz = HalVectorTranslate([spindle_yz],c,"offset_x",0,"offset_z")
 # spindle head and y-slide move with y
 spindle_yz = HalTranslate([spindle_yz],c,"axis_y",0,1,0)
@@ -485,7 +535,7 @@ model = Collection([table, spindle_yz, base,])
 
 #hud
 myhud = Hud()
-myhud.show("XYZAB-TRSR")
+myhud.show("XYZBC-sntr")
 myhud.show("------------")
 myhud.show("Kinematic Mode:")
 myhud.add_txt("IDENTITY",[0,3])
@@ -493,14 +543,14 @@ myhud.add_txt("TCP",1)
 myhud.add_txt("TOOL",2)
 myhud.add_txt("")
 myhud.add_txt("TWP-Orientation Vector X:")
-myhud.add_pin("Xx: {:8.3f}","xyzbc-trsr-gui.twp_xx")
-myhud.add_pin("Xy: {:8.3f}","xyzbc-trsr-gui.twp_xy")
-myhud.add_pin("Xz: {:8.3f}","xyzbc-trsr-gui.twp_xz")
+myhud.add_pin("Xx: {:8.3f}","xyzbc-sntr-gui.twp_xx")
+myhud.add_pin("Xy: {:8.3f}","xyzbc-sntr-gui.twp_xy")
+myhud.add_pin("Xz: {:8.3f}","xyzbc-sntr-gui.twp_xz")
 myhud.add_txt("")
 myhud.add_txt("TWP-Orientation Vector Z:")
-myhud.add_pin("Zx: {:8.3f}","xyzbc-trsr-gui.twp_zx")
-myhud.add_pin("Zy: {:8.3f}","xyzbc-trsr-gui.twp_zy")
-myhud.add_pin("Zz: {:8.3f}","xyzbc-trsr-gui.twp_zz")
+myhud.add_pin("Zx: {:8.3f}","xyzbc-sntr-gui.twp_zx")
+myhud.add_pin("Zy: {:8.3f}","xyzbc-sntr-gui.twp_zy")
+myhud.add_pin("Zz: {:8.3f}","xyzbc-sntr-gui.twp_zz")
 myhud.add_txt("")
 myhud.show_tags_in_pin("motion.switchkins-type")
 #/hud
