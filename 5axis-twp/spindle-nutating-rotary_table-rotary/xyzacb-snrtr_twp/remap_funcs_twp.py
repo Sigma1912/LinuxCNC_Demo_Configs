@@ -204,7 +204,7 @@ def kins_calc_transformed_work_offset(current_offset, twp_offset, theta_1, theta
     transformed_offset = (P[0]+Q[0], P[1]+Q[1], P[2]+Q[2])
     return transformed_offset
 
-
+# pass required values to the kinematics component
 def kins_set_values(theta_1, theta_2, virtual_rot): # expects radians
     hal.set_p(kins_virtual_rotation, str(virtual_rot))
     hal.set_p(kins_primary_rotation, str(theta_1))

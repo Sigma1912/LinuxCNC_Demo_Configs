@@ -93,3 +93,16 @@ General notes about TWP implementation in LinuxCNC:
     - For easier abort handling TWP can only be defined when in 'G54', as LinuxCNC currently reverts to this after an abort.
     - Axis limit checking done in the current motion planner is ignorant of the manipulations done in the custom kinematic component. To avoid erroneous limit violation errors when loading gcode the axis limits set in the [AXIS_l] sections of the ini file will in most cases have to be expanded. This can be done automatically during gcode execution when switching from one kinematic to another. See the 'millturn' simulation configuration for an example.
 
+
+Implementation of TWP consists of:
+
+- Kinematic mode responsible for jogging and gcode execution in the oriented tool coordinate system, this is found in the respective custom kinematid component for each separate machine configuration. See the enclosed jupyter notebooks for detailed description. Note that this kinematic mode uses rotary joint positions set by the remap.
+
+- Python remap responsible for providing the TWP related Gcodes outlined above. This is found in '/python/remap.py'. Note that all the kinematic specific functions have been factored out of 'remap.py' and moved to individual files called 'remap_funcs_twp.py' found in each of the config folders. Hence 'remap.py' requires this file to be present and to contain the correct information and mathematical functions.
+
+- A python hal component in '/vismach/twp-helper-comp.py' used to create and update TWP relevant hal pins.
+
+Vismach simulation:
+
+A modified version of vismach in '/vismach/twp_vismach.py' is used to visualize the TWP in the vismach simulation.
+Each configuration in this collection has it's own vismach model to visualize machine geometry and function.

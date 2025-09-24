@@ -13,7 +13,22 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
-#
+'''
+The remap does the following:
+
+- Parses the G68.[2,4] gcodes and constructs the requested tool orientation vectors (x,z).
+- Writes and reads hal pins created and updated by'twp-helper-comp.py' (mostly for updating the gui).
+- Parses the G53.[1,3,6] and uses the functions in 'remap_funcs_twp.py' to calculate all rotary joint position that result in the correct tool orientation (there may be more than just one).
+- Selects the appropriate rotary angles that will respect rotary limits set in the ini file and also follow any orientation strategy requested by the operator using the 'P' word.
+- Sets the kinematic modes
+- Calculates new work offset values so the WCS origin after switching to TWP mode is in the requested physical position.
+- Used MDI commands to:
+        - Move the rotary joints to the calculated positions
+        - Switch the WCS system to 'G59' and set the values of G59, G59.[1,2.3] to the calculated coordinates
+- Parses the G69 gcodes, resets the relevant parameters and switches back to Identity kinematic mode
+'''
+
+
 import sys
 import traceback
 import numpy as np

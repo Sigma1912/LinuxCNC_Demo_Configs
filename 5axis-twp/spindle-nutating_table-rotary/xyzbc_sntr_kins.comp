@@ -30,14 +30,16 @@ static struct haldata {
   hal_float_t *x_offset;
   hal_float_t *x_rot_axis;
   hal_float_t *y_rot_axis;
-  hal_float_t *virtual_rot;
   hal_float_t *twp_x;
   hal_float_t *twp_y;
   hal_float_t *twp_z;
   hal_float_t *nut_angle;
+  hal_float_t *tool_offset_z;
+  // these are set directly from 'kins_set_values()' in 'remap_funcs_twp.py'
+  hal_float_t *virtual_rot; 
   hal_float_t *prim_angle;
   hal_float_t *sec_angle;
-  hal_float_t *tool_offset_z;
+
 
   // Example parameters:
   // hal_float_t param_rw;

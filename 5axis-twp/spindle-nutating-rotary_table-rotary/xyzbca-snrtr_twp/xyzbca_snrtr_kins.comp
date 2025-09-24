@@ -36,6 +36,10 @@ static struct haldata {
   hal_float_t *prim_angle;
   hal_float_t *sec_angle;
   hal_float_t *tool_offset_z;
+  // these are set directly from 'kins_set_values()' in 'remap_funcs_twp.py'
+  hal_float_t *virtual_rot;
+  hal_float_t *prim_angle;
+  hal_float_t *sec_angle;
 
   // Example parameters:
   // hal_float_t param_rw;

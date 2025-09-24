@@ -1,3 +1,5 @@
+# This python hal component is used to create and update twp related hal pins
+
 #!/usr/bin/env python3
 
 import hal
