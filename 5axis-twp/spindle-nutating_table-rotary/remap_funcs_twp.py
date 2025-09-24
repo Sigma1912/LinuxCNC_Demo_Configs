@@ -1,5 +1,5 @@
-# This is a python remap for LinuxCNC implementing 'Tilted Work Plane'
-# G68.2, G68.3, G68.4 and related Gcodes G53.1, G53.3, G53.6, G69
+# This is imported by remap.py and contains twp functionality specific to xyzbc-sntr config
+#
 #
 # Copyright ()c) 2025 David Mueller <mueller_david@hotmail.com>
 #
