@@ -954,6 +954,13 @@ def g682(self, **words):
         twp_flag[2] = 'done'
 
     elif p == 2: # twp defined py 3 points on the plane
+        # TODO implement operator errors as outlined in the twp README
+        #- G68.2 P2 (Q0),Q1,Q2,Q3 commands are not entered consecutively
+        #- two to the points entered in Q1,Q2,Q3 are identical
+        #- all three points entered in Q1,Q2,Q3 are on a line
+        #- the distance between a line defined by any two points entered in (Q1,Q2,Q3) and
+        #the remaining point  is less than 10mm or 0.5inch (just some arbitrary values for now)
+
         # if this is the first call for this mode reset the twp_flag flag
         if not twp_flag:
             twp_flag = [int(p), 4 , 'empty', 'empty', 'empty', 'empty'] # four calls needed
@@ -1050,6 +1057,10 @@ def g682(self, **words):
             log.debug("   G68.2 P2: Built twp-transformation-matrix: \n%s", twp_matrix)
 
     elif p == 3: # two vectors (vector 1 defines the x-vector and vector 2 defines the z-vector)
+        # TODO implement operator errors as outlined in the twp README
+        #- G68.2 P3 Q1 and Q2 commands are not entered consecutively
+        #- one of the vectors is the zero vector
+        #- the enclosed angle between the 1. and 2. vector is <85° or >95° (re fanuc twp pdf)
         q = int(c.q_number if c.q_flag else 0)
         # if this is the first call for this mode reset the twp_flag flag
         if not twp_flag:
@@ -1137,6 +1148,8 @@ def g682(self, **words):
             twp_matrix = np.vstack((twp_matrix, twp_row_4))
             twp_matrix = np.asmatrix(twp_matrix)
             log.debug("   G68.2 P3: Built twp-transformation-matrix: \n%s", twp_matrix)
+
+    # TODO implement G68.2 P4 as outlined in the fanuc twp pdf (the exact meaning of which is unclear to me)
 
     else:
          # reset the twp parameters
@@ -1307,6 +1320,13 @@ def g684(self, **words):
         twp_flag[2] = 'done'
 
     elif p == 2: # twp defined py 3 points on the plane
+        # TODO implement operator errors as outlined in the twp README
+        #- G68.2 P2 (Q0),Q1,Q2,Q3 commands are not entered consecutively
+        #- two to the points entered in Q1,Q2,Q3 are identical
+        #- all three points entered in Q1,Q2,Q3 are on a line
+        #- the distance between a line defined by any two points entered in (Q1,Q2,Q3) and
+        #the remaining point  is less than 10mm or 0.5inch (just some arbitrary values for now)
+
         # if this is the first call for this mode reset the twp_flag flag
         if not twp_flag:
             twp_flag = [int(p), 4 , 'empty', 'empty', 'empty', 'empty'] # four calls needed
@@ -1403,6 +1423,10 @@ def g684(self, **words):
             log.debug("   G68.4 P2: Built twp-transformation-matrix: \n%s", twp_matrix)
 
     elif p == 3: # two vectors (vector 1 defines the x-vector and vector 2 defines the z-vector)
+        # TODO implement operator errors as outlined in the twp README
+        #- G68.2 P3 Q1 and Q2 commands are not entered consecutively
+        #- one of the vectors is the zero vector
+        #- the enclosed angle between the 1. and 2. vector is <85° or >95° (re fanuc twp pdf)
         q = int(c.q_number if c.q_flag else 0)
         # if this is the first call for this mode reset the twp_flag flag
         if not twp_flag:
@@ -1492,6 +1516,8 @@ def g684(self, **words):
             twp_matrix = np.vstack((twp_matrix, twp_row_4))
             twp_matrix = np.asmatrix(twp_matrix)
             log.debug("   G68.4 P3: Built twp-transformation-matrix: \n%s", twp_matrix)
+
+    # TODO implement G68.4 P4 as outlined in the fanuc twp pdf (the exact meaning of which is unclear to me)
 
     else:
          # reset the twp parameters
