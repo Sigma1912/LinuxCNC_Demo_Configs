@@ -2,21 +2,25 @@ Switchable Table Nutating Rotary (tnr) Sim config
 
 xyzbc-tnr (switchable kinematics)
 
+XYZ - linear cartesian
+  B - table nutating or table tilt
+  C - table rotary
+
+The kinematic component includes the following modes:
+
+IDENTITY: Trivial kinematics with a one-to-one mapping of joints to axes
+     TCP: Coordinated xyz motion with rotation around the tool center point for all joint rotations
+     TWP: Coordinated xyz motion in the current tool coordinate system as set through the included TWP remap. See the README in the base directory for more information about the Tilted Work Plane feature.
 
 Demonstrations:
 
-For a demonstration of XYZBC_TCP kinematics the user can run the preloaded demo gcode with the default offsets.
+For a demonstration the user can run the preloaded demo gcode with the default offsets.
 
 In the right hand panel of the axis gui sliders are provided to
 
-- change the geometrical (x,z)-offsets as measured from the face center of the rotary C table to the rotation-point of the B/C.
-  rotary-assembly. The offsets are visibly adjusted in the vismach simulation and represented by a red indicator
-  for the x-offset and a blue indicator for the z-offset.
-
-- change the nutation angle of the primary rotary B.
-
+- change the geometrical offsets of the rotary-assembly.The offsets are visibly adjusted in the vismach simulation and represented by individual indicators.
+- change the nutation angle of the primary table rotary.
 - change the table angle to change the table orientation between a BC and an AC configuration.
-
 - see the effects of misconfiguring the (x,y,z)-rot-point values used in the kinematics. These values represent the
   physical position of the rotary-assembly in the machine as measured from the machine home position to the face center
   of the rotary C table. The rotation-point is identical to the intersection of the two rotational axes B and C when the (x,z)-offsets
@@ -24,30 +28,10 @@ In the right hand panel of the axis gui sliders are provided to
   these values as well as the true rotation-point of the rotary-assembly are indicated in the vismach simulation by a yellow cross
   and a yellow sphere respectively.
 
+Both the kinematic and the twp remap support variable nutation angles of the primary rotary joint (ie A or B ) form 0° to 90°.
+Hence this config will also work for the 'usual' orthogonal 'table-rotary-tilt' type machines by setting the nutation angle to 90°.
+
+
 NOTE:
 For proper tool-path preview RELOAD THE CGODE after startup and after changing offset values.
 
-
-This simulation also includes a python remap of Gcodes for tilted workplane (TWP) functionality.
-Both the kinematic and the twp remap support nutation of the primary rotary joint (ie A or B ) form 0 to 90°.
-Hence this also works for the 'usual' orthogonal spindle rotary-tilt type machines by setting the nutation angle to 90°.
-
-Implemented TWP functionality:
-G68.2 : defines twp using euler-angles, pitch-roll-yaw, 2-vectors, 3 points, optionally with offset in XYZ and rotation in XY
-G68.3 : defines twp from current tool orientation, optionally with offset in XYZ and rotation in XY
-G68.4 : same as G68.2 but as an incremental definition from an active TWP plane
-G69 : cancels the current twp (resets all parameters, moves to G54 and sets Identity kinematics)
-G53.1 (P) : spindle orientation without tcp, switches to G59 and activates tool kinematics
-G53.3 (P XYZ) : same as G53.1 but with simultaneous move the the XYZ coords on the twp plane
-G53.6 (P) : same as G53.1 but spindle orientation with tcp
-
-- Table is B (A) primary, C secondary. Table primary orientation can be adjusted using the 'table-angle' value.
-- All G53.x commands will respect axis limits as set in the ini file for the respective primary and secondary table joints.
-- The P word sets the orientation strategy: 0(default)=shortest distance,
-                                            1=positive rotation only,
-                                            2=negative rotation only
-                                            (this applies to the prioritized rotary, the other rotary moves the shortest distance)
-- The prioritized rotary can be set using the [TWP]PRIORITY value (1 or 2) in the ini file.
-
-Full Documentation can be found at:
-https://github.com/Sigma1912/LinuxCNC_Demo_Configs/tree/main/table-nutating-rotary/

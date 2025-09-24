@@ -1,16 +1,32 @@
 This is a simulation configuration for a 6 axis machine with the following kinematic:
 
+xyzbca-snrtr (switchable kinematics)
+
 XYZ - linear cartesian
-  B - spindle nutating
+  B - spindle nutating or spindle tilt
   C - spindle rotary
   A - table rotary
 
-The spindle rotary assembly is fully configurable using sliders in the side panel of the gui
-
-The kinematic component includes the following modes:
-
 IDENTITY: Trivial kinematics with a one-to-one mapping of joints to axes
-     TCP: Coordinated xyz motion with rotation around the tool center point
-    TOOL: Coordinated xyz motion in the current tool coordinate system
+     TCP: Coordinated xyz motion with rotation around the tool center point for all joint rotations
+     TWP: Coordinated xyz motion in the current tool coordinate system as set through the included TWP remap. See the README in the base directory for more information about the Tilted Work Plane feature.
 
-Also see the README in the parent directory.
+Demonstrations:
+
+For a demonstration the user can run the preloaded demo gcode with the default offsets.
+
+In the right hand panel of the axis gui sliders are provided to
+
+- change the geometrical offsets of the rotary-assembly. The offsets are visibly adjusted in the vismach simulation and represented by individual indicators.
+- change the nutation angle of the primary spindle rotary.
+- see the effects of misconfiguring the axis position of the rotary table. These values represent the
+  physical position of the rotary-assembly in the machine as measured from the machine home position to the face center
+  of the rotary C table. The true rotation-axis of the model is indicated in the vismach simulation by a yellow line.
+
+Both the kinematic and the twp remap support variable nutation angles of the primary spindle rotary joint form 0° to 90°.
+Hence this config will also work for the 'usual' orthogonal 'table-rotary-tilt' type machines by setting the nutation angle to 90°.
+
+
+NOTE:
+For proper tool-path preview RELOAD THE CGODE after startup and after changing offset values.
+
