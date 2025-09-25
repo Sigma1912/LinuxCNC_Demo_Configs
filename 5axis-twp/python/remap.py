@@ -55,7 +55,9 @@ import configparser
 inifile = os.environ.get("INI_FILE_NAME")
 
 # adding the remap_funcs folder to the system path
-sys.path.insert(0, os.getcwd())
+cwd = os.getcwd()
+parent = os.path.abspath(os.path.join(cwd, os.pardir))
+sys.path.insert(0, parent)
 from remap_funcs_twp import *
 
 # instantiate a parser in non-strict mode because we have multiple entries for

@@ -14,13 +14,13 @@ machine_zero_z =  1000
 try: # Expect files in working directory
     # NOTE to run this file as standalone python script absolute paths might have to be used to find the stl files
     # create the work piece from file
-    work_piece = AsciiSTL(filename="./work_piece_1.stl")
-    EGO_BC = AsciiSTL(filename="./160Pbase_resized.stl")
-    EGO_B = AsciiSTL(filename="./160PB_resized.stl")
-    EGO_C = AsciiSTL(filename="./160PC.stl")
-    EGO_X = AsciiSTL(filename="./160PX.stl")
-    EGO_Y = AsciiSTL(filename="./160PY.stl")
-    EGO_Z = AsciiSTL(filename="./160PZ_resized.stl")
+    work_piece = AsciiSTL(filename="./vismach/work_piece_1.stl")
+    EGO_BC = AsciiSTL(filename="./vismach/160Pbase_resized.stl")
+    EGO_B = AsciiSTL(filename="./vismach/160PB_resized.stl")
+    EGO_C = AsciiSTL(filename="./vismach/160PC.stl")
+    EGO_X = AsciiSTL(filename="./vismach/160PX.stl")
+    EGO_Y = AsciiSTL(filename="./vismach/160PY.stl")
+    EGO_Z = AsciiSTL(filename="./vismach/160PZ_resized.stl")
 
 
 except Exception as detail:
