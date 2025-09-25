@@ -99,12 +99,12 @@ def kins_calc_transformation_matrix(theta_1, theta_2, virtual_rot, matrix_in, di
     # calculate the transformation matrix for the inverse tool kinematic
     matrix_tool_inv = Rw*Rs*Rtc*T_in
     if direction == 'fwd':
-        print("matrix tool fwd: \n", matrix_tool_fwd)
-        print("inv would have been: \n", matrix_tool_inv)
+        #print("matrix tool fwd: \n", matrix_tool_fwd)
+        #print("inv would have been: \n", matrix_tool_inv)
         return matrix_tool_fwd
     elif direction == 'inv':
-        print("matrix tool inv: \n", matrix_tool_inv)
-        print("fwd would have been: \n", matrix_tool_fwd)
+        #print("matrix tool inv: \n", matrix_tool_inv)
+        #print("fwd would have been: \n", matrix_tool_fwd)
         return matrix_tool_inv
     else:
         return 0
@@ -158,6 +158,10 @@ def kins_calc_secondary(log, z_vector_req, x_vector_req):
     if Kzz > 1 - epsilon:
         theta_2 = 0
     # This kinematics nutation angle restricts the negative range of Kzz
+    # Check for edge case at max negative
+    elif round(Kzz,10) == round(2*Cv*Cv - 1,10):
+        theta_2 = radians(180)
+    # Check for unreachable Kzz requests
     elif Kzz < 2*Cv*Cv - 1:
         log.error('remap_funcs: Requested orientation not reachable with the current nutation angle.')
         return None
