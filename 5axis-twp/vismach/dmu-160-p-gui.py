@@ -15,12 +15,12 @@ try: # Expect files in working directory
     # NOTE to run this file as standalone python script absolute paths might have to be used to find the stl files
     # create the work piece from file
     work_piece = AsciiSTL(filename="./vismach-stl-files/work_piece_1.stl")
-    EGO_BC = AsciiSTL(filename="./vismach-stl-files/160Pbase_resized.stl")
-    EGO_B = AsciiSTL(filename="./vismach-stl-files/160PB_resized.stl")
+    EGO_BC = AsciiSTL(filename="./vismach-stl-files/160Pbase.stl")
+    EGO_B = AsciiSTL(filename="./vismach-stl-files/160PB.stl")
     EGO_C = AsciiSTL(filename="./vismach-stl-files/160PC.stl")
     EGO_X = AsciiSTL(filename="./vismach-stl-files/160PX.stl")
     EGO_Y = AsciiSTL(filename="./vismach-stl-files/160PY.stl")
-    EGO_Z = AsciiSTL(filename="./vismach-stl-files/160PZ_resized.stl")
+    EGO_Z = AsciiSTL(filename="./vismach-stl-files/160PZ.stl")
 
 
 except Exception as detail:
