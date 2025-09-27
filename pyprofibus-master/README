@@ -1,0 +1,3 @@
+This is a sim config to demonstrate profibus implementation using FESTO hardware
+
+- This config contains a local source for 'pyprofibus' so installation of the python 'pyprofibus' module (ie pip install pyprofibus) is NOT required.

@@ -1,0 +1,277 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<pyvcp>
+    <labelframe text="Festo CPV-DIO2">
+    <font>("Helvetica",10)</font>
+    <bd>3</bd>
+    <relief>GROOVE</relief> 
+    <hbox>
+        <hbox>
+            <vbox>
+                <checkbutton>
+    		        <halpin>"checkbutton0"</halpin>
+		        <text>"Valve 1"</text>
+	                <initval>1</initval>    		    
+	        </checkbutton>
+		<checkbutton>
+	    	        <halpin>"checkbutton1"</halpin>
+		        <text>"Valve 2"</text>
+	                <initval>0</initval>    		    		    
+    	        </checkbutton>
+		<checkbutton>
+	    	        <halpin>"checkbutton2"</halpin>
+	                <text>"Valve 3"</text>
+	                <initval>0</initval>    		    
+        	</checkbutton>
+		<checkbutton>
+	    	        <halpin>"checkbutton3"</halpin>
+	                <text>"Valve 4"</text>
+	                <initval>0</initval>    		    
+        	</checkbutton>
+                <checkbutton>
+    		        <halpin>"checkbutton4"</halpin>
+		        <text>"Valve 5"</text>
+	                <initval>1</initval>    		    
+	        </checkbutton>
+		<checkbutton>
+	    	        <halpin>"checkbutton5"</halpin>
+		        <text>"Valve 6"</text>
+	                <initval>0</initval>    		    		    
+    	        </checkbutton>
+		<checkbutton>
+	    	        <halpin>"checkbutton6"</halpin>
+	                <text>"Valve 7"</text>
+	                <initval>0</initval>    		    
+        	</checkbutton>
+		<checkbutton>
+	    	        <halpin>"checkbutton7"</halpin>
+	                <text>"Valve 8"</text>
+	                <initval>0</initval>    		    
+        	</checkbutton>
+    	    </vbox>
+        </hbox>
+     </hbox>
+     </labelframe>
+    <labelframe text="Festo CP-A08">
+    <font>("Helvetica",10)</font>
+    <bd>3</bd>
+    <relief>GROOVE</relief> 
+    <hbox>
+        <hbox>
+            <vbox>
+                <checkbutton>
+    		        <halpin>"checkbutton8"</halpin>
+		        <text>"Output 1"</text>
+	                <initval>1</initval>    		    
+	        </checkbutton>
+		<checkbutton>
+	    	        <halpin>"checkbutton9"</halpin>
+		        <text>"Output 2"</text>
+	                <initval>0</initval>    		    		    
+    	        </checkbutton>
+		<checkbutton>
+	    	        <halpin>"checkbutton10"</halpin>
+	                <text>"Output 3"</text>
+	                <initval>0</initval>    		    
+        	</checkbutton>
+		<checkbutton>
+	    	        <halpin>"checkbutton11"</halpin>
+	                <text>"Output 4"</text>
+	                <initval>0</initval>    		    
+        	</checkbutton>
+                <checkbutton>
+    		        <halpin>"checkbutton12"</halpin>
+		        <text>"Output 5"</text>
+	                <initval>1</initval>    		    
+	        </checkbutton>
+		<checkbutton>
+	    	        <halpin>"checkbutton13"</halpin>
+		        <text>"Output 6"</text>
+	                <initval>0</initval>    		    		    
+    	        </checkbutton>
+		<checkbutton>
+	    	        <halpin>"checkbutton14"</halpin>
+	                <text>"Output 7"</text>
+	                <initval>0</initval>    		    
+        	</checkbutton>
+		<checkbutton>
+	    	        <halpin>"checkbutton15"</halpin>
+	                <text>"Output 8"</text>
+	                <initval>0</initval>    		    
+        	</checkbutton>
+    	    </vbox>
+        </hbox>
+     </hbox>
+     </labelframe>
+    <labelframe text="Festo CP-E16">
+    <font>("Helvetica",10)</font>
+    <bd>3</bd>
+    <relief>GROOVE</relief> 
+    <hbox>
+        <hbox>
+            <vbox>
+                <label>
+                    <text>"I-0"</text>
+                </label>
+                <label>
+                    <text>"I-2"</text>
+                </label>
+                <label>
+                    <text>"I-4"</text>
+                </label>
+                <label>
+                    <text>"I-6"</text>
+                </label>
+                <label>
+                    <text>"I-8"</text>
+                </label>
+                <label>
+                    <text>"I-10"</text>
+                </label>
+                <label>
+                    <text>"I-12"</text>
+                </label>
+                <label>
+                    <text>"I-14"</text>
+                </label>
+            </vbox>
+        </hbox>
+	    
+        <hbox>
+            <vbox>
+                <led>
+                    <halpin>"led0"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+                <led>
+                    <halpin>"led2"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+                <led>
+                    <halpin>"led4"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+                <led>
+                    <halpin>"led6"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+                <led>
+                    <halpin>"led8"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+                <led>
+                    <halpin>"led10"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+                <led>
+                    <halpin>"led12"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+                <led>
+                    <halpin>"led14"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+
+            </vbox>
+        </hbox> 
+        
+        <hbox>
+            <vbox>
+                <led>
+                    <halpin>"led1"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+                <led>
+                    <halpin>"led3"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+                <led>
+                    <halpin>"led5"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+                <led>
+                    <halpin>"led7"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+                <led>
+                    <halpin>"led9"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+                <led>
+                    <halpin>"led11"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+                <led>
+                    <halpin>"led13"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+                <led>
+                    <halpin>"led15"</halpin>
+                    <size>15</size>
+                    <on_color>"yellow"</on_color>
+                    <off_color>"gray"</off_color>
+                </led>
+            </vbox>
+        </hbox> 	            
+        <hbox>
+            <vbox>
+                <label>
+                    <text>"I-1"</text>
+                </label>
+                <label>
+                    <text>"I-3"</text>
+                </label>
+                <label>
+                    <text>"I-5"</text>
+                </label>
+                <label>
+                    <text>"I-7"</text>
+                </label>
+                <label>
+                    <text>"I-9"</text>
+                </label>
+                <label>
+                    <text>"I-11"</text>
+                </label>
+                <label>
+                    <text>"I-13"</text>
+                </label>
+                <label>
+                    <text>"I-15"</text>
+                </label>
+            </vbox>
+        </hbox>
+
+     </hbox>
+     </labelframe>
+</pyvcp>  
+

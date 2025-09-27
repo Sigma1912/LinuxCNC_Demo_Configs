@@ -1,0 +1,77 @@
+# ---------------------------------------
+# --- PROFIBUS DP
+# --- LinuxCNC HAL configuration file
+# ------
+
+
+# --- Load the pyprofibus HAL userspace module ---
+#
+# Parameters:
+#  --loglevel LVL	: Change the log level.
+#
+#  --nice NICE		: Renice the process. -20 <= NICE <= 19.
+#			  Default: Do not renice.
+#
+# The last parameter is the configuration file describing the PROFIBUS.
+#
+loadusr -Wn profibus ../pyprofibus-linuxcnc-hal.py pyprofibus.conf
+
+
+# --- Enable the used output pins ---
+# All output pins are deactivated by default.
+# So all output pins connected below, should be activated here by writing
+# a '1' to the '.active' pin.
+# Deactivated output pins will not be forwarded from LinuxCNC to the PROFIBUS.
+setp	profibus.slave.8.mosi.bit.0.0.active		1
+setp	profibus.slave.8.mosi.bit.0.2.active		1
+setp	profibus.slave.8.mosi.bit.0.4.active		1
+setp	profibus.slave.8.mosi.bit.0.6.active		1
+setp	profibus.slave.8.mosi.bit.1.0.active		1
+setp	profibus.slave.8.mosi.bit.1.2.active		1
+setp	profibus.slave.8.mosi.bit.1.4.active		1
+setp	profibus.slave.8.mosi.bit.1.6.active		1
+
+setp	profibus.slave.8.mosi.bit.2.0.active		1
+setp	profibus.slave.8.mosi.bit.2.1.active		1
+setp	profibus.slave.8.mosi.bit.2.2.active		1
+setp	profibus.slave.8.mosi.bit.2.3.active		1
+setp	profibus.slave.8.mosi.bit.2.4.active		1
+setp	profibus.slave.8.mosi.bit.2.5.active		1
+setp	profibus.slave.8.mosi.bit.2.6.active		1
+setp	profibus.slave.8.mosi.bit.2.7.active		1
+
+
+
+# --- Connect output pins ---
+#net	estop-out	<= halui.estop.is-activated	=> profibus.slave.8.mosi.bit.0.0      => profibus.slave.8.mosi.bit.1.0
+#net	machine-on	<= halui.machine.is-on	    => profibus.slave.8.mosi.bit.0.2      => profibus.slave.8.mosi.bit.1.2
+#net	spindle-cw	<= spindle.0.forward	    => profibus.slave.8.mosi.bit.0.4      => profibus.slave.8.mosi.bit.1.4
+#net	spindle-ccw	<= spindle.0.reverse	    => profibus.slave.8.mosi.bit.0.6      => profibus.slave.8.mosi.bit.1.6
+
+# --- Enable the used input pins ---
+# All input pins are deactivated by default.
+# So all input pins connected below, should be activated here by writing
+# a '1' to the '.active' pin.
+# Deactivated input pins will not be forwarded from LinuxCNC to the PROFIBUS.
+setp	profibus.slave.8.miso.bit.0.0.active		1
+setp	profibus.slave.8.miso.bit.0.1.active		1
+setp	profibus.slave.8.miso.bit.0.2.active		1
+setp	profibus.slave.8.miso.bit.0.3.active		1
+setp	profibus.slave.8.miso.bit.0.4.active		1
+setp	profibus.slave.8.miso.bit.0.5.active		1
+setp	profibus.slave.8.miso.bit.0.6.active		1
+setp	profibus.slave.8.miso.bit.0.7.active		1
+
+setp	profibus.slave.8.miso.bit.1.0.active		1
+setp	profibus.slave.8.miso.bit.1.1.active		1
+setp	profibus.slave.8.miso.bit.1.2.active		1
+setp	profibus.slave.8.miso.bit.1.3.active		1
+setp	profibus.slave.8.miso.bit.1.4.active		1
+setp	profibus.slave.8.miso.bit.1.5.active		1
+setp	profibus.slave.8.miso.bit.1.6.active		1
+setp	profibus.slave.8.miso.bit.1.7.active		1
+
+
+# Always keep this at the end of this file.
+# This will activate data transfer between pyprofibus and LinuxCNC.
+setp	profibus.config.ready	1

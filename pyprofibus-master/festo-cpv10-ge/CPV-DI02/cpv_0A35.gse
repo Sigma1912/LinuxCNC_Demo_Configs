@@ -1,0 +1,242 @@
+;*****************************************************************************;
+; Geraetestammdatei fuer CPV-Ventilinsel mit direktem Profibus DP-Anschluﬂ   ;
+; Hersteller: Fa. FESTO AG&Co., Ruiterstrasse 82, 73734 Esslingen             ;
+; 	FESTO Hotline-Tel.: 0711/347-3000                                           ;
+;*****************************************************************************;
+#Profibus_DP
+GSD_Revision        = 5
+Vendor_Name         = "Festo AG&Co."
+Model_Name          = "Festo CPV-DI02"
+Revision            = "28.06.06"
+Ident_Number        = 0x0A35
+Protocol_Ident      = 0
+Station_Type        = 0
+FMS_supp            = 0
+Hardware_Release    = "12.05"
+Software_Release    = "V1.3"
+;
+9.6_supp            = 1
+19.2_supp           = 1
+93.75_supp          = 1
+187.5_supp          = 1
+500_supp            = 1
+1.5M_supp           = 1
+3M_supp             = 1
+6M_supp             = 1
+12M_supp            = 1
+;
+MaxTsdr_9.6         = 20
+MaxTsdr_19.2        = 20
+MaxTsdr_93.75       = 20
+MaxTsdr_187.5       = 20
+MaxTsdr_500         = 20
+MaxTsdr_1.5M        = 25
+MaxTsdr_3M          = 50
+MaxTsdr_6M          = 100
+MaxTsdr_12M         = 200
+;
+Redundancy          = 0
+Repeater_Ctrl_Sig   = 2
+24V_Pins            = 0
+Implementation_Type = "SPC3"
+Bitmap_Device       = "pb_dicpn"
+;Bitmap_Diag         = "pb_dicpd"
+;Bitmap_SF           = "pb_dicps"
+;
+Freeze_Mode_supp    = 1
+Sync_Mode_supp      = 1
+Auto_Baud_supp      = 1
+Set_Slave_Add_supp  = 0
+Min_Slave_Intervall = 0x0005
+;
+Modular_Station     = 1
+Max_Module          = 0x05
+Max_Input_Len       = 0x04
+Max_Output_Len      = 0x06
+Max_Data_Len        = 0x000A
+Modul_Offset        = 1
+;
+Fail_Safe           = 0
+Slave_Family        = 4
+Max_Diag_Data_Len   = 0x0010
+;
+Unit_Diag_Bit(8)    = "CPI-connection to output modul"
+Unit_Diag_Bit(9)    = "CPI-connection to input modul"
+Unit_Diag_Bit(10)   = "short circuit / overload output"
+Unit_Diag_Bit(11)   = "power load failure output module"
+Unit_Diag_Bit(12)   = "sensor power supply < 10V"
+Unit_Diag_Bit(13)   = "valve power supply < 20.4V"
+Unit_Diag_Bit(14)   = "valve power supply < 10V"
+Unit_Diag_Bit(15)   = "no update-mode"
+Unit_Diag_Bit(16)   = "failure main module"
+Unit_Diag_Bit(17)   = "failure 1. CP- module"
+Unit_Diag_Bit(18)   = "failure 2. CP- module"
+Unit_Diag_Bit(19)   = "failure 3. CP- module"
+Unit_Diag_Bit(20)   = "failure 4. CP- module"
+;
+Max_User_Prm_Data_Len = 0x1E
+
+;------------------Definition der Parametertexte-----------------
+
+PrmText = 1 	                             ; Referenznummer 1
+Text(0) = "inactive"
+Text(1) = "active"
+EndPrmText 
+
+PrmText = 2                              	; Referenznummer 2
+Text(0) = "reset outputs"
+Text(1) = "outputs fault mode"
+Text(2) = "outputs hold last state"
+EndPrmText
+
+
+
+ExtUserPrmData = 1 "monitor U-Load"                      ; Referenznummer 1
+Bit(1) 1 0-1                                          	; Default = 1, Min = 0, Max = 1
+Prm_Text_Ref = 1		                           ; Verweis auf Text-Definition 1
+EndExtUserPrmData
+
+ExtUserPrmData = 2 "monitor failure CP-Line"                      ; Referenznummer 2
+Bit(7) 1 0-1                                          	; Default = 1, Min = 0, Max = 1
+Prm_Text_Ref = 1		                           ; Verweis auf Text-Definition 1
+EndExtUserPrmData
+
+ExtUserPrmData = 3 "fault mode"                  ; Referenznummer 3
+BitArea(0-1) 0 0-2                                          ; Default = 0, Min = 0, Max = 3
+Prm_Text_Ref = 2                                           ; Verweis auf Text-Definition 2
+EndExtUserPrmData
+
+ExtUserPrmData = 4 "fault state 1 byte"              ; Referenznummer 4
+unsigned8 0 0-255                                        ; Default = 0, Min = 0, Max = 255
+EndExtUserPrmData
+
+ExtUserPrmData = 5 "fault state 2 byte"              ; Referenznummer 5
+unsigned16 0 0-65535                                        ; Default = 0, Min = 0, Max = 65535
+EndExtUserPrmData
+
+ExtUserPrmData = 7 "fault state 3 byte"              ; Referenznummer 7
+unsigned32 0 0-16777215                             ; Default = 0, Min = 0, Max = 16777215
+EndExtUserPrmData
+
+ExtUserPrmData = 8 "fault state 4 byte"              ; Referenznummer 8
+unsigned32 0 0-4294967295                            ; Default = 0, Min = 0, Max = 4294967295
+EndExtUserPrmData
+
+ExtUserPrmData = 6 "parameter byte"                 ; Referenznummer 6
+unsigned8 91 0-255                                 ; Default = 91, Min = 0, Max = 255
+EndExtUserPrmData
+
+;-------------------- Modultypen -------------------------
+; <Module-Definition-List>
+Module = "Base module:16DO" 0x21
+Info_Text = "Base unit CPV-SC with 16 digital outputs (valve coils)"
+1
+Ext_Module_Prm_Data_Len = 7
+Ext_User_Prm_Data_Const(0) = 0x00, 0x00, 0x00, 0x82, 0x00, 0x00, 0x00
+Ext_User_Prm_Data_Ref(3) = 1
+Ext_User_Prm_Data_Ref(3) = 2
+Ext_User_Prm_Data_Ref(4) = 3
+Ext_User_Prm_Data_Ref(5) = 5
+EndModule
+
+Module = "CP-A08" 0x20
+Info_Text = "String extension with 8 digital outputs"
+2
+Ext_Module_Prm_Data_Len = 3
+Ext_User_Prm_Data_Const(0) = 0x5B, 0x00, 0x00
+Ext_User_Prm_Data_Ref(0) = 6
+Ext_User_Prm_Data_Ref(1) = 3
+Ext_User_Prm_Data_Ref(2) = 4
+EndModule
+
+Module = "CP-A16" 0x21
+Info_Text = "String extension with 16 digital outputs"
+3
+Ext_Module_Prm_Data_Len = 4
+Ext_User_Prm_Data_Const(0) = 0x5B, 0x00, 0x00, 0x00
+Ext_User_Prm_Data_Ref(0) = 6
+Ext_User_Prm_Data_Ref(1) = 3
+Ext_User_Prm_Data_Ref(2) = 5
+EndModule
+
+Module = "CP-A24" 0x22
+Info_Text = "String extension with 24 digital outputs"
+4
+Ext_Module_Prm_Data_Len = 6
+Ext_User_Prm_Data_Const(0) = 0x5B, 0x00, 0x00, 0x00, 0x00, 0x00
+Ext_User_Prm_Data_Ref(0) = 6
+Ext_User_Prm_Data_Ref(1) = 3
+Ext_User_Prm_Data_Ref(2) = 7
+EndModule
+
+Module = "CP-A32" 0x23
+Info_Text = "String extension with 32 digital outputs"
+5
+Ext_Module_Prm_Data_Len = 6
+Ext_User_Prm_Data_Const(0) = 0x5B, 0x00, 0x00, 0x00, 0x00, 0x00
+Ext_User_Prm_Data_Ref(0) = 6
+Ext_User_Prm_Data_Ref(1) = 3
+Ext_User_Prm_Data_Ref(2) = 8
+EndModule
+
+Module = "CP-E08" 0x10
+Info_Text = "String extension with 8 digital inputs"
+6
+Ext_Module_Prm_Data_Len = 1
+Ext_User_Prm_Data_Const(0) = 0x5B
+Ext_User_Prm_Data_Ref(0) = 6
+EndModule
+
+Module = "CP-E16" 0x11
+Info_Text = "String extension with 16 digital inputs"
+7
+Ext_Module_Prm_Data_Len = 1
+Ext_User_Prm_Data_Const(0) = 0x5B
+Ext_User_Prm_Data_Ref(0) = 6
+EndModule
+
+Module = "CP-E24" 0x12
+Info_Text = "String extension with 24 digital inputs"
+8
+Ext_Module_Prm_Data_Len = 1
+Ext_User_Prm_Data_Const(0) = 0x5B
+Ext_User_Prm_Data_Ref(0) = 6
+EndModule
+
+Module = "CP-E32" 0x13
+Info_Text = "String extension with 32 digital inputs"
+9
+Ext_Module_Prm_Data_Len = 1
+Ext_User_Prm_Data_Const(0) = 0x5B
+Ext_User_Prm_Data_Ref(0) = 6
+EndModule
+
+Module = "tool change mode I/O 32/32" 0x33
+Info_Text = "tool change mode with 32 inputs and 32 outputs"
+10
+Ext_Module_Prm_Data_Len = 9
+Ext_User_Prm_Data_Const(0) = 0x5B, 0x5B, 0x5B, 0x5B, 0x00, 0x00, 0x00, 0x00, 0x00
+Ext_User_Prm_Data_Ref(0) = 6
+Ext_User_Prm_Data_Ref(1) = 6
+Ext_User_Prm_Data_Ref(2) = 6
+Ext_User_Prm_Data_Ref(3) = 6
+Ext_User_Prm_Data_Ref(4) = 3
+Ext_User_Prm_Data_Ref(5) = 8
+EndModule
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

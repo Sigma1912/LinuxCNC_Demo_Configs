@@ -1,0 +1,11 @@
+build/
+.pybuild/
+
+__pycache__/
+*.pyc
+*.pyo
+
+.*.swp
+.~*
+
+*.html

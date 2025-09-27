@@ -1,0 +1,35 @@
+net cb0active   pyvcp.checkbutton0      => profibus.slave.8.mosi.bit.0.0
+net cb1active   pyvcp.checkbutton1      => profibus.slave.8.mosi.bit.0.2
+net cb2active   pyvcp.checkbutton2      => profibus.slave.8.mosi.bit.0.4
+net cb3active   pyvcp.checkbutton3      => profibus.slave.8.mosi.bit.0.6
+net cb4active   pyvcp.checkbutton4      => profibus.slave.8.mosi.bit.1.0
+net cb5active   pyvcp.checkbutton5      => profibus.slave.8.mosi.bit.1.2
+net cb6active   pyvcp.checkbutton6      => profibus.slave.8.mosi.bit.1.4
+net cb7active   pyvcp.checkbutton7      => profibus.slave.8.mosi.bit.1.6
+
+net cb8active   pyvcp.checkbutton8      => profibus.slave.8.mosi.bit.2.0
+net cb9active   pyvcp.checkbutton9      => profibus.slave.8.mosi.bit.2.1
+net cb10active  pyvcp.checkbutton10     => profibus.slave.8.mosi.bit.2.2
+net cb11active  pyvcp.checkbutton11     => profibus.slave.8.mosi.bit.2.3
+net cb12active  pyvcp.checkbutton12     => profibus.slave.8.mosi.bit.2.4
+net cb13active  pyvcp.checkbutton13     => profibus.slave.8.mosi.bit.2.5
+net cb14active  pyvcp.checkbutton14     => profibus.slave.8.mosi.bit.2.6
+net cb15active  pyvcp.checkbutton15     => profibus.slave.8.mosi.bit.2.7
+
+net ld0active   pyvcp.led0              => profibus.slave.8.miso.bit.0.0
+net ld1active   pyvcp.led1              => profibus.slave.8.miso.bit.0.1
+net ld2active   pyvcp.led2              => profibus.slave.8.miso.bit.0.2
+net ld3active   pyvcp.led3              => profibus.slave.8.miso.bit.0.3
+net ld4active   pyvcp.led4              => profibus.slave.8.miso.bit.0.4
+net ld5active   pyvcp.led5              => profibus.slave.8.miso.bit.0.5
+net ld6active   pyvcp.led6              => profibus.slave.8.miso.bit.0.6
+net ld7active   pyvcp.led7              => profibus.slave.8.miso.bit.0.7
+
+net ld8active   pyvcp.led8              => profibus.slave.8.miso.bit.1.0
+net ld9active   pyvcp.led9              => profibus.slave.8.miso.bit.1.1
+net ld10active  pyvcp.led10             => profibus.slave.8.miso.bit.1.2
+net ld11active  pyvcp.led11             => profibus.slave.8.miso.bit.1.3
+net ld12active  pyvcp.led12             => profibus.slave.8.miso.bit.1.4
+net ld13active  pyvcp.led13             => profibus.slave.8.miso.bit.1.5
+net ld14active  pyvcp.led14             => profibus.slave.8.miso.bit.1.6
+net ld15active  pyvcp.led15             => profibus.slave.8.miso.bit.1.7

@@ -1,0 +1,606 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# PROFIBUS DP - LinuxCNC HAL module
+#
+# Copyright 2016-2023 Michael Buesch <m@bues.ch>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+
+from __future__ import division, absolute_import, print_function, unicode_literals
+
+import sys
+import os
+import time
+import getopt
+import struct
+
+from pyprofibus import ProfibusError, FdlError, DpError
+from pyprofibus.compat import isPy2Compat
+from pyprofibus.util import fileExists, FaultDebouncer
+from pyprofibus.dp import DpTelegram_SetPrm_Req
+from pyprofibus.conf import PbConf, PbConfError
+from pyprofibus.version import *
+
+
+class SigBit:
+	def __init__(self, hal, halName, byteOffset, bitOffset):
+		self.hal = hal
+		self.halName = halName
+		self.byteOffset = byteOffset
+		self.bitOffset = bitOffset
+		self.setMask = 1 << bitOffset
+		self.clrMask = ~(1 << bitOffset)
+
+	def fromHal(self, destBuf):
+		if self.hal[self.halName]:
+			destBuf[self.byteOffset] |= self.setMask
+		else:
+			destBuf[self.byteOffset] &= self.clrMask
+
+	def toHal(self, srcBuf):
+		self.hal[self.halName] = (srcBuf[self.byteOffset] >> self.bitOffset) & 1
+
+	def __str__(self):
+		return "profibus.%s" % self.halName
+
+class SigU8:
+	def __init__(self, hal, halName, offset):
+		self.hal = hal
+		self.halName = halName
+		self.offset = offset
+
+	def fromHal(self, destBuf):
+		destBuf[self.offset] = self.hal[self.halName] & 0xFF
+
+	def toHal(self, srcBuf):
+		self.hal[self.halName] = srcBuf[self.offset] & 0xFF
+
+	def __str__(self):
+		return "profibus.%s" % self.halName
+
+class SigU16:
+	def __init__(self, hal, halName, offset):
+		self.hal = hal
+		self.halName = halName
+		self.offset = offset
+
+	def fromHal(self, destBuf):
+		word = self.hal[self.halName] & 0xFFFF
+		destBuf[self.offset] = (word >> 8) & 0xFF
+		destBuf[self.offset + 1] = word & 0xFF
+
+	def toHal(self, srcBuf):
+		word = (srcBuf[self.offset] << 8) |\
+		       srcBuf[self.offset + 1]
+		self.hal[self.halName] = word & 0xFFFF
+
+	def __str__(self):
+		return "profibus.%s" % self.halName
+
+class SigS16:
+	def __init__(self, hal, halName, offset):
+		self.hal = hal
+		self.halName = halName
+		self.offset = offset
+
+	def fromHal(self, destBuf):
+		word = self.hal[self.halName] & 0xFFFF
+		destBuf[self.offset] = (word >> 8) & 0xFF
+		destBuf[self.offset + 1] = word & 0xFF
+
+	def toHal(self, srcBuf):
+		word = (srcBuf[self.offset] << 8) |\
+		       srcBuf[self.offset + 1]
+		if word & 0x8000:
+			self.hal[self.halName] = -((~word + 1) & 0xFFFF)
+		else:
+			self.hal[self.halName] = word & 0xFFFF
+
+	def __str__(self):
+		return "profibus.%s" % self.halName
+
+class SigU31:
+	def __init__(self, hal, halName, offset):
+		self.hal = hal
+		self.halName = halName
+		self.offset = offset
+
+	def fromHal(self, destBuf):
+		dword = self.hal[self.halName] & 0x7FFFFFFF
+		destBuf[self.offset] = (dword >> 24) & 0xFF
+		destBuf[self.offset + 1] = (dword >> 16) & 0xFF
+		destBuf[self.offset + 2] = (dword >> 8) & 0xFF
+		destBuf[self.offset + 3] = dword & 0xFF
+
+	def toHal(self, srcBuf):
+		dword = (srcBuf[self.offset] << 24) |\
+		        (srcBuf[self.offset + 1] << 16) |\
+		        (srcBuf[self.offset + 2] << 8) |\
+		        srcBuf[self.offset + 3]
+		self.hal[self.halName] = dword & 0x7FFFFFFF
+
+	def __str__(self):
+		return "profibus.%s" % self.halName
+
+class SigS32:
+	def __init__(self, hal, halName, offset):
+		self.hal = hal
+		self.halName = halName
+		self.offset = offset
+
+	def fromHal(self, destBuf):
+		dword = self.hal[self.halName] & 0xFFFFFFFF
+		destBuf[self.offset] = (dword >> 24) & 0xFF
+		destBuf[self.offset + 1] = (dword >> 16) & 0xFF
+		destBuf[self.offset + 2] = (dword >> 8) & 0xFF
+		destBuf[self.offset + 3] = dword & 0xFF
+
+	def toHal(self, srcBuf):
+		dword = (srcBuf[self.offset] << 24) |\
+		        (srcBuf[self.offset + 1] << 16) |\
+		        (srcBuf[self.offset + 2] << 8) |\
+		        srcBuf[self.offset + 3]
+		if dword & 0x80000000:
+			self.hal[self.halName] = -((~dword + 1) & 0xFFFFFFFF)
+		else:
+			self.hal[self.halName] = dword & 0xFFFFFFFF
+
+	def __str__(self):
+		return "profibus.%s" % self.halName
+
+class SigFloat:
+	floatStruct = struct.Struct(str('>f'))
+
+	def __init__(self, hal, halName, offset):
+		self.hal = hal
+		self.halName = halName
+		self.offset = offset
+
+	def fromHal(self, destBuf):
+		buf = self.floatStruct.pack(self.hal[self.halName])
+		if isPy2Compat:
+			buf = [ ord(b) for b in buf ]
+		destBuf[self.offset : self.offset + 4] = buf[0 : 4]
+
+	def toHal(self, srcBuf):
+		dword = (srcBuf[self.offset] << 24) |\
+		        (srcBuf[self.offset + 1] << 16) |\
+		        (srcBuf[self.offset + 2] << 8) |\
+		        srcBuf[self.offset + 3]
+		if isPy2Compat:
+			value = self.floatStruct.unpack(
+				chr((dword >> 24) & 0xFF) +\
+				chr((dword >> 16) & 0xFF) +\
+				chr((dword >> 8) & 0xFF) +\
+				chr(dword & 0xFF)
+			)[0]
+		else:
+			value = self.floatStruct.unpack(
+				bytes( ((dword >> 24) & 0xFF,
+					(dword >> 16) & 0xFF,
+					(dword >> 8) & 0xFF,
+					dword & 0xFF)
+				)
+			)[0]
+		self.hal[self.halName] = value
+
+	def __str__(self):
+		return "profibus.%s" % self.halName
+
+class Worker:
+	def __init__(self, hal, master):
+		self.__configDone = False
+		self.hal = hal
+		self.master = master
+		self.slaves = master.getSlaveList()
+
+	def __buildTable(self, slaveAddr, direction, size):
+		tab = []
+		for i in range(0, size):
+			for bitNr in range(8):
+				halName = "slave.%d.%s.bit.%d.%d" % (
+					slaveAddr, direction, i, bitNr)
+				if self.hal[halName + ".active"]:
+					tab.append(SigBit(self.hal, halName,
+							  i, bitNr))
+			halName = "slave.%d.%s.u8.%d" % (
+				slaveAddr, direction, i)
+			if self.hal[halName + ".active"]:
+				tab.append(SigU8(self.hal, halName, i))
+			if i % 2:
+				continue
+			if size - i < 2:
+				continue
+
+			halName = "slave.%d.%s.u16.%d" % (
+				slaveAddr, direction, i)
+			if self.hal[halName + ".active"]:
+				tab.append(SigU16(self.hal, halName, i))
+			halName = "slave.%d.%s.s16.%d" % (
+				slaveAddr, direction, i)
+			if self.hal[halName + ".active"]:
+				tab.append(SigS16(self.hal, halName, i))
+			if size - i < 4:
+				continue
+
+			halName = "slave.%d.%s.u31.%d" % (
+				slaveAddr, direction, i)
+			if self.hal[halName + ".active"]:
+				tab.append(SigU31(self.hal, halName, i))
+			halName = "slave.%d.%s.s32.%d" % (
+				slaveAddr, direction, i)
+			if self.hal[halName + ".active"]:
+				tab.append(SigS32(self.hal, halName, i))
+			halName = "slave.%d.%s.float.%d" % (
+				slaveAddr, direction, i)
+			if self.hal[halName + ".active"]:
+				tab.append(SigFloat(self.hal, halName, i))
+		return tab
+
+	def __tryBuildConfig(self):
+		if not self.hal["config.ready"]:
+			return
+
+		for slave in self.slaves:
+			slaveConf = slave.slaveConf
+			if slaveConf is None:
+				continue
+
+			activePbMasterOutputs = self.__buildTable(
+				slave.slaveAddr, "mosi", slaveConf.inputSize)
+
+			activePbMasterInputs = self.__buildTable(
+				slave.slaveAddr, "miso", slaveConf.outputSize)
+
+			slave.userData["activePbMasterInputs"] = activePbMasterInputs
+			slave.userData["activePbMasterOutputs"] = activePbMasterOutputs
+
+			printInfo("Active DP slave (addr=%d) I/O pins:" % slave.slaveAddr)
+			for sig in activePbMasterOutputs:
+				printInfo("DP slave input:   " + str(sig))
+			for sig in activePbMasterInputs:
+				printInfo("DP slave output:  " + str(sig))
+
+		self.__configDone = True
+		printInfo("HAL configuration done")
+
+	def mainLoop(self, faultDeb):
+		master = self.master
+		while watchdog() and not self.__configDone:
+			self.__tryBuildConfig()
+			time.sleep(0.1)
+		while watchdog():
+			for slave in self.slaves:
+				slaveConf = slave.slaveConf
+				if slaveConf is not None:
+					# Copy I/O data from HAL to PB master output.
+					txData = bytearray(slaveConf.inputSize)
+					for sig in slave.userData["activePbMasterOutputs"]:
+						sig.fromHal(txData)
+					slave.setMasterOutData(txData)
+			slave = master.run()
+			if slave is not None:
+				slaveConf = slave.slaveConf
+				if slaveConf is not None:
+					rxData = slave.getMasterInData()
+					halBaseName = "slave.%d" % slave.slaveAddr
+					isConnected = slave.isConnected()
+					if isConnected: # Slave is connected.
+						# Copy I/O data from PB master input to HAL.
+						if rxData is not None:
+							assert len(rxData) == slaveConf.outputSize
+							for sig in slave.userData["activePbMasterInputs"]:
+								sig.toHal(rxData)
+							self.hal[halBaseName + ".connected"] = True
+							self.hal[halBaseName + ".connecting"] = False
+					else: # Slave is not connected.
+						self.hal[halBaseName + ".connecting"] = slave.isConnecting()
+						self.hal[halBaseName + ".connected"] = False
+						if self.hal[halBaseName + ".config.disconnect-clear-pins"]:
+							# Clear the HAL data.
+							rxData = bytearray(slaveConf.outputSize)
+							for sig in slave.userData["activePbMasterInputs"]:
+								sig.toHal(rxData)
+			faultDeb.ok()
+
+class LinuxCNC_NotRunning(Exception):
+	pass
+
+def printError(msg):
+	sys.stderr.write("pyprofibus: " + msg + "\n")
+
+def printWarning(msg):
+	sys.stderr.write("pyprofibus: " + msg + "\n")
+
+def printInfo(msg):
+	sys.stdout.write("pyprofibus: " + msg + "\n")
+
+# Check presence of LinuxCNC.
+# Returns normally, if LinuxCNC is detected.
+# Raises LinuxCNC_NotRunning, if LinuxCNC is not detected.
+def watchdog():
+	# Check whether LinuxCNC is running.
+	if fileExists("/tmp/linuxcnc.lock"):
+		return True
+	if not opt_watchdog:
+		# The check is disabled. Return success.
+		return True
+	printError("LinuxCNC doesn't seem to be running. "\
+		   "(Use '--watchdog off' to disable this check.)")
+	raise LinuxCNC_NotRunning()
+
+# Create the global LinuxCNC HAL pins and params
+def createGlobalHalPins(hal):
+	HAL_BIT, HAL_U32, HAL_S32, HAL_FLOAT = \
+		LinuxCNC_HAL.HAL_BIT, LinuxCNC_HAL.HAL_U32, \
+		LinuxCNC_HAL.HAL_S32, LinuxCNC_HAL.HAL_FLOAT
+	HAL_IN, HAL_OUT, HAL_RO, HAL_RW = \
+		LinuxCNC_HAL.HAL_IN, LinuxCNC_HAL.HAL_OUT, \
+		LinuxCNC_HAL.HAL_RO, LinuxCNC_HAL.HAL_RW
+
+	hal.newparam("config.ready", HAL_BIT, HAL_RW)
+
+# Create the per-slave LinuxCNC HAL pins and params
+def createSlaveHalPins(hal, slaveAddr, slaveOutputSize, slaveInputSize):
+	HAL_BIT, HAL_U32, HAL_S32, HAL_FLOAT = \
+		LinuxCNC_HAL.HAL_BIT, LinuxCNC_HAL.HAL_U32, \
+		LinuxCNC_HAL.HAL_S32, LinuxCNC_HAL.HAL_FLOAT
+	HAL_IN, HAL_OUT, HAL_RO, HAL_RW = \
+		LinuxCNC_HAL.HAL_IN, LinuxCNC_HAL.HAL_OUT, \
+		LinuxCNC_HAL.HAL_RO, LinuxCNC_HAL.HAL_RW
+	addr = slaveAddr
+
+	hal.newpin("slave.%d.connecting" % addr, HAL_BIT, HAL_OUT)
+	hal.newpin("slave.%d.connected" % addr, HAL_BIT, HAL_OUT)
+
+	printInfo("DP slave %d output (MISO): %d bytes" % (addr, slaveOutputSize))
+	printInfo("DP slave %d input (MOSI):  %d bytes" % (addr, slaveInputSize))
+
+	# Create the input pins
+	for i in range(slaveInputSize):
+		for bit in range(8):
+			hal.newpin("slave.%d.mosi.bit.%d.%d" % (addr, i, bit),
+				   HAL_BIT, HAL_IN)
+			hal.newparam("slave.%d.mosi.bit.%d.%d.active" % (addr, i, bit),
+				     HAL_BIT, HAL_RW)
+		hal.newpin("slave.%d.mosi.u8.%d" % (addr, i),
+			   HAL_U32, HAL_IN)
+		hal.newparam("slave.%d.mosi.u8.%d.active" % (addr, i),
+			     HAL_BIT, HAL_RW)
+		if i % 2:
+			continue
+		if slaveInputSize - i < 2:
+			continue
+		hal.newpin("slave.%d.mosi.u16.%d" % (addr, i),
+			   HAL_U32, HAL_IN)
+		hal.newparam("slave.%d.mosi.u16.%d.active" % (addr, i),
+			     HAL_BIT, HAL_RW)
+		hal.newpin("slave.%d.mosi.s16.%d" % (addr, i),
+			   HAL_S32, HAL_IN)
+		hal.newparam("slave.%d.mosi.s16.%d.active" % (addr, i),
+			     HAL_BIT, HAL_RW)
+		if slaveInputSize - i < 4:
+			continue
+		hal.newpin("slave.%d.mosi.u31.%d" % (addr, i),
+			   HAL_U32, HAL_IN)
+		hal.newparam("slave.%d.mosi.u31.%d.active" % (addr, i),
+			     HAL_BIT, HAL_RW)
+		hal.newpin("slave.%d.mosi.s32.%d" % (addr, i),
+			   HAL_S32, HAL_IN)
+		hal.newparam("slave.%d.mosi.s32.%d.active" % (addr, i),
+			     HAL_BIT, HAL_RW)
+		hal.newpin("slave.%d.mosi.float.%d" % (addr, i),
+			   HAL_FLOAT, HAL_IN)
+		hal.newparam("slave.%d.mosi.float.%d.active" % (addr, i),
+			     HAL_BIT, HAL_RW)
+
+	# Create the output pins
+	for i in range(slaveOutputSize):
+		for bit in range(8):
+			hal.newpin("slave.%d.miso.bit.%d.%d" % (addr, i, bit),
+				   HAL_BIT, HAL_OUT)
+			hal.newparam("slave.%d.miso.bit.%d.%d.active" % (addr, i, bit),
+				     HAL_BIT, HAL_RW)
+		hal.newpin("slave.%d.miso.u8.%d" % (addr, i),
+			   HAL_U32, HAL_OUT)
+		hal.newparam("slave.%d.miso.u8.%d.active" % (addr, i),
+			     HAL_BIT, HAL_RW)
+		if i % 2:
+			continue
+		if slaveOutputSize < 2:
+			continue
+		hal.newpin("slave.%d.miso.u16.%d" % (addr, i),
+			   HAL_U32, HAL_OUT)
+		hal.newparam("slave.%d.miso.u16.%d.active" % (addr, i),
+			     HAL_BIT, HAL_RW)
+		hal.newpin("slave.%d.miso.s16.%d" % (addr, i),
+			   HAL_S32, HAL_OUT)
+		hal.newparam("slave.%d.miso.s16.%d.active" % (addr, i),
+			     HAL_BIT, HAL_RW)
+		if slaveOutputSize < 4:
+			continue
+		hal.newpin("slave.%d.miso.u31.%d" % (addr, i),
+			   HAL_U32, HAL_OUT)
+		hal.newparam("slave.%d.miso.u31.%d.active" % (addr, i),
+			     HAL_BIT, HAL_RW)
+		hal.newpin("slave.%d.miso.s32.%d" % (addr, i),
+			   HAL_S32, HAL_OUT)
+		hal.newparam("slave.%d.miso.s32.%d.active" % (addr, i),
+			     HAL_BIT, HAL_RW)
+		hal.newpin("slave.%d.miso.float.%d" % (addr, i),
+			   HAL_FLOAT, HAL_OUT)
+		hal.newparam("slave.%d.miso.float.%d.active" % (addr, i),
+			     HAL_BIT, HAL_RW)
+
+	hal.newparam("slave.%d.config.disconnect-clear-pins" % addr, HAL_BIT, HAL_RW)
+
+def usage():
+	print("pyprofibus-linuxcnc-hal version %s" % VERSION_STRING)
+	print("")
+	print("Usage: pyprofibus-linuxcnc-hal [OPTIONS] pyprofibus.conf")
+	print("")
+	print("Options:")
+	print("")
+	print(" -L|--loglevel LVL       Set the log level:")
+	print("                         0: Log nothing")
+	print("                         1: Log errors")
+	print("                         2: Log errors and warnings")
+	print("                         3: Log errors, warnings and info messages (default)")
+	print("                         4: Verbose logging")
+	print("                         5: Extremely verbose logging")
+	print(" -N|--nice NICE          Renice the process. -20 <= NICE <= 19.")
+	print("                         Default: Do not renice")
+	print("")
+	print("Debugging options:")
+	print(" -W|--watchdog 1/0       Enable/disable LinuxCNC runtime watchdog.")
+	print("                         Default: on")
+	print("")
+	print("For an example LinuxCNC HAL configuration see:")
+	print("  linuxcnc-demo.hal")
+
+def main():
+	global LinuxCNC_HAL
+
+	global opt_loglevel
+	global opt_nice
+	global opt_watchdog
+
+	opt_loglevel = 3
+	opt_nice = None
+	opt_watchdog = True
+
+	try:
+		(opts, args) = getopt.getopt(sys.argv[1:],
+			"hL:N:W:",
+			[ "help",
+			  "loglevel=",
+			  "nice=",
+			  "watchdog=", ])
+	except getopt.GetoptError as e:
+		printError(str(e))
+		usage()
+		return 1
+	for (o, v) in opts:
+		if o in ("-h", "--help"):
+			usage()
+			return 0
+		if o in ("-L", "--loglevel"):
+			try:
+				opt_loglevel = int(v)
+			except ValueError:
+				printError("-L|--loglevel: Invalid log level")
+				return 1
+		if o in ("-N", "--nice"):
+			try:
+				opt_nice = int(v)
+				if opt_nice < -20 or opt_nice > 19:
+					raise ValueError
+			except ValueError:
+				printError("-N|--nice: Invalid niceness level")
+				return 1
+		if o in ("-W", "--watchdog"):
+			opt_watchdog = str2bool(v)
+	if len(args) != 1:
+		usage()
+		return 1
+	configFile = args[0]
+
+	result = 0
+	try:
+		# Parse the Profibus config file
+		config = PbConf.fromFile(configFile)
+		if opt_loglevel >= 4 and config.debug < 1:
+			config.debug = 1
+
+		# Adjust process priority
+		if opt_nice is not None:
+			try:
+				os.nice(opt_nice)
+			except OSError as e:
+				printError("Failed to renice process to "
+					   "%d: %s" % (opt_nice, str(e)))
+				return 1
+
+		# Try to import the LinuxCNC HAL module
+		try:
+			import hal as LinuxCNC_HAL
+		except ImportError as e:
+			printError("Failed to import LinuxCNC HAL "
+				   "module: %s" % str(e))
+			return 1
+
+		# Create the LinuxCNC HAL component.
+		hal = LinuxCNC_HAL.component("profibus")
+
+		# Create the HAL pins.
+		createGlobalHalPins(hal=hal)
+		for slaveConf in config.slaveConfs:
+			createSlaveHalPins(hal=hal,
+				           slaveAddr=slaveConf.addr,
+				           slaveInputSize=slaveConf.inputSize,
+				           slaveOutputSize=slaveConf.outputSize)
+
+		# Setup the PROFIBUS stack.
+		master = config.makeDPM()
+		for slaveConf in config.slaveConfs:
+			slaveDesc = slaveConf.makeDpSlaveDesc()
+			dp1PrmMask = bytearray((
+				DpTelegram_SetPrm_Req.DPV1PRM0_FAILSAFE,
+				DpTelegram_SetPrm_Req.DPV1PRM1_REDCFG,
+				0x00))
+			dp1PrmSet  = bytearray((
+				DpTelegram_SetPrm_Req.DPV1PRM0_FAILSAFE,
+				DpTelegram_SetPrm_Req.DPV1PRM1_REDCFG,
+				0x00))
+			slaveDesc.setUserPrmData(
+				slaveConf.gsd.getUserPrmData(dp1PrmMask=dp1PrmMask,
+							     dp1PrmSet=dp1PrmSet))
+			master.addSlave(slaveDesc)
+
+		printInfo("Running PROFIBUS-DP master...")
+		master.initialize()
+		worker = Worker(hal, master)
+		hal.ready()
+		printInfo("ready.")
+		faultDeb = FaultDebouncer()
+		while True:
+			try:
+				worker.mainLoop(faultDeb)
+			except (LinuxCNC_NotRunning, KeyboardInterrupt) as e:
+				raise e
+			except Exception as e:
+				if faultDeb.fault() >= 3:
+					# Too many faults. Raise a fatal exception.
+					printError("Fatal PROFIBUS fault.")
+					raise e
+				else:
+					# Non-fatal fault.
+					printError("PROFIBUS fault:\n%s" % str(e))
+	except (LinuxCNC_NotRunning, KeyboardInterrupt) as e:
+		result = 1
+	except PbConfError as e:
+		printError("Profibus configuration error:\n%s" % str(e))
+		result = 1
+	except ProfibusError as e:
+		printError("Fatal PROFIBUS fault:\n%s" % str(e))
+		result = 1
+	printInfo("LinuxCNC HAL module shutdown.")
+
+	return result
+
+if __name__ == "__main__":
+	sys.exit(main())
