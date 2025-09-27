@@ -1,5 +1,5 @@
 ;M428 by remap: kinstype==0 (Identity)
-o<428remap>sub
+o<m428remap>sub
   #<kinstype> = 0
   #<SWITCHKINS_PIN> = 3  ; set N as required: motion.analog-out-0N
 
@@ -21,4 +21,4 @@ o2 if [[#<_task> EQ 1] AND [#<_hal[motion.switchkins-type]> NE #<kinstype>]]
 o2 else
 o2 endif
 
-o<428remap>endsub
+o<m428remap>endsub

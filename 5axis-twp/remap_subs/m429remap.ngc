@@ -1,5 +1,5 @@
 ;M429 by remap: kinstype==1 (TCP)
-o<429remap>sub
+o<m429remap>sub
   #<kinstype> = 1
   #<SWITCHKINS_PIN> = 3  ; set N as required: motion.analog-out-0N
 
@@ -21,4 +21,4 @@ o2 if [[#<_task> EQ 1] AND [#<_hal[motion.switchkins-type]> NE #<kinstype>]]
 o2 else
 o2 endif
 
-o<429remap>endsub
+o<m429remap>endsub

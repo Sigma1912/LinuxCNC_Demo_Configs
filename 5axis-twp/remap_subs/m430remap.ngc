@@ -1,5 +1,5 @@
 ;M430 by remap: kinstype==2 TWP
-o<430remap>sub
+o<m430remap>sub
   #<kinstype> = 2
   #<SWITCHKINS_PIN> = 3  ; set N as required: motion.analog-out-0N
 
@@ -21,4 +21,4 @@ o2 if [[#<_task> EQ 1] AND [#<_hal[motion.switchkins-type]> NE #<kinstype>]]
 o2 else
 o2 endif
 
-o<430remap>endsub
+o<m430remap>endsub
