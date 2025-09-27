@@ -307,7 +307,7 @@ class HalLine():
     # calculate polar coordinates in degrees
     # a rotates around the x-axis; b rotates around the y axis
     def polar(self, v):
-        length = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]) * self.stretch
+        length = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]) * abs(self.stretch)
         axis = (1, 0, 0) if hypot(v[0], v[1]) < 0.001 else self.cross(v, (0, 0, 1))
         angle = -atan2(hypot(v[0], v[1]), v[2])*180/pi
         return (length, angle, axis)
@@ -316,9 +316,14 @@ class HalLine():
         x1 = 0 if self.x1var == 0 else self.comp[self.x1var]
         y1 = 0 if self.y1var == 0 else self.comp[self.y1var]
         z1 = 0 if self.z1var == 0 else self.comp[self.z1var]
-        x2 = 0 if self.x2var == 0 else self.comp[self.x2var]
-        y2 = 0 if self.y2var == 0 else self.comp[self.y2var]
-        z2 = 0 if self.z2var == 0 else self.comp[self.z2var]
+        if self.stretch < 0:
+            x2 = 0 if self.x2var == 0 else -self.comp[self.x2var]
+            y2 = 0 if self.y2var == 0 else -self.comp[self.y2var]
+            z2 = 0 if self.z2var == 0 else -self.comp[self.z2var]
+        else:
+            x2 = 0 if self.x2var == 0 else self.comp[self.x2var]
+            y2 = 0 if self.y2var == 0 else self.comp[self.y2var]
+            z2 = 0 if self.z2var == 0 else self.comp[self.z2var]
         r = self.r
         v = [x2,y2,z2]
         length, angle, axis = self.polar(v)
@@ -386,7 +391,7 @@ class HalPlaneFromNormal():
 # draw a coordinate system defined by it's normal vector(zx,zy,zz) and x-direction vector(xx, xy, xz)
 # optional r to define the thickness of the cylinders
 class HalCoordsFromNormalAndDirection():
-    def __init__(self, comp, ox, oy, oz, xx, xy, xz, zx, zy, zz, stretch, r=5):
+    def __init__(self, comp, ox, oy, oz, xx, xy, xz, zx, zy, zz, stretch, r=5, s_ox=1, s_oy=1, s_oz=1):
         self.comp = comp
         self.ox = ox
         self.oy = oy
@@ -399,6 +404,9 @@ class HalCoordsFromNormalAndDirection():
         self.zz = zz
         self.stretch = stretch
         self.r = r
+        self.s_ox  = s_ox
+        self.s_oy  = s_oy
+        self.s_oz  = s_oz
         self.q = gluNewQuadric()
 
 
@@ -418,14 +426,17 @@ class HalCoordsFromNormalAndDirection():
         zy = 0 if self.zy == 0 else self.comp[self.zy]
         zz = 0 if self.zz == 0 else self.comp[self.zz]
         r = self.r
+        s_ox = self.s_ox
+        s_oy = self.s_oy
+        s_oz = self.s_oz
         vo = [ox, oy, oz]
         vx = [xx, xy, xz]
         vz = [zx, zy, zz]
         # calculate the missing y vector
         vy = [yx, yy, yz] = np.cross(vz,vx)
-        m=np.matrix([[ xx, yx, zx, ox],
-                     [ xy, yy, zy, oy],
-                     [ xz, yz, zz, oz],
+        m=np.matrix([[ xx, yx, zx, ox*s_ox],
+                     [ xy, yy, zy, oy*s_oy],
+                     [ xz, yz, zz, oz*s_oz],
                      [  0,  0,  0, 1]])
 
         glPushMatrix()
@@ -444,7 +455,7 @@ class HalCoordsFromNormalAndDirection():
 # draw a grid defined by it's normal vector(zx,zy,zz) and x-direction vector(xx, xy, xz)
 # optional s to define the half-width from the origin (ox,oy,oz)
 class HalGridFromNormalAndDirection():
-    def __init__(self, comp, ox, oy, oz, xx, xy, xz, zx, zy, zz, s=500):
+    def __init__(self, comp, ox, oy, oz, xx, xy, xz, zx, zy, zz, s=500, s_ox=1, s_oy=1, s_oz=1):
         self.comp = comp
         self.ox = ox
         self.oy = oy
@@ -456,6 +467,9 @@ class HalGridFromNormalAndDirection():
         self.zy = zy
         self.zz = zz
         self.s = s
+        self.s_ox  = s_ox
+        self.s_oy  = s_oy
+        self.s_oz  = s_oz
         self.q = gluNewQuadric()
 
     def square(self, s):
@@ -481,14 +495,17 @@ class HalGridFromNormalAndDirection():
         zy = 0 if self.zy == 0 else self.comp[self.zy]
         zz = 0 if self.zz == 0 else self.comp[self.zz]
         s = self.s
+        s_ox = self.s_ox
+        s_oy = self.s_oy
+        s_oz = self.s_oz
         vo = [ox, oy, oz]
         vx = [xx, xy, xz]
         vz = [zx, zy, zz]
         # calculate the missing y vector
         vy = [yx, yy, yz] = np.cross(vz,vx)
-        m=np.matrix([[ xx, yx, zx, ox],
-                     [ xy, yy, zy, oy],
-                     [ xz, yz, zz, oz],
+        m=np.matrix([[ xx, yx, zx, ox*s_ox],
+                     [ xy, yy, zy, oy*s_oy],
+                     [ xz, yz, zz, oz*s_oz],
                      [  0,  0,  0, 1]])
 
         glPushMatrix()
