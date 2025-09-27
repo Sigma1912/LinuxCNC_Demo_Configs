@@ -1,0 +1,32 @@
+
+o<m6remap>sub
+M66 L0 E0
+M428
+; check if G7 is active
+o100 if [#<_lathe_diameter_mode> EQ 1]
+ (print,DEBUG m6remap: G7 active)
+ #<g7g8_state> = 1
+o100 else
+ (print,DEBUG m6remap: G8 active)
+ #<g7g8_state> = 0
+o100 endif
+G8
+G53 G0 X500 Y300 Z900
+G53 G0 B-90
+G53 Z500
+M66 L0 E0
+ (print, DEBUG tool called: #<_hal[iocontrol.0.tool-prep-number]>)
+M61 Q#<_hal[iocontrol.0.tool-prep-number]>
+G53 Z900
+G53 X200
+; restore G7/G8 state
+o101 if [#<g7g8_state> EQ 1]
+ (print,DEBUG m6remap: restoring G7)
+ G7
+o101 else
+ (print,DEBUG m6remap: restoring G8)
+ G8
+o101 endif
+
+o<m6remap>endsub
+m2

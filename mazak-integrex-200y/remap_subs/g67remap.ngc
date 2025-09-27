@@ -1,0 +1,12 @@
+; this is the wrapper remap to switch to 'TCP Lathe' mode and move the B-Axis to the given B angle
+
+o<g67remap>sub
+o103 if [EXISTS [#<B>]]
+o103 else
+   #<B> = 0
+o103 endif
+G0 B#<B>
+M66 L0 E0
+M429  ; switch to TCP Lathe mode
+o<g67remap>endsub
+m2
