@@ -213,7 +213,10 @@ class HalShow(Collection):
     def __init__(self, parts, comp, const, var, scaleby_true=1, scaleby_false=0):
         self.parts = parts
         self.comp = comp
-        self.const = const
+        if isinstance(const, list):
+             self.const = const
+        else:
+             self.const = [const]
         self.var = var
         self.scaleby_true = scaleby_true
         self.scaleby_false = scaleby_false
@@ -222,7 +225,7 @@ class HalShow(Collection):
         s_t = self.scaleby_true
         s_f = self.scaleby_false
         glPushMatrix()
-        if self.const == self.comp[self.var]:
+        if self.comp[self.var] in self.const:
             glScalef(s_t,s_t,s_t)
         else:
             glScalef(s_f,s_f,s_f)
