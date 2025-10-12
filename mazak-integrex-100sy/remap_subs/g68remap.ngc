@@ -1,0 +1,30 @@
+; this is the wrapper remap to move the B-Axis and then
+; define the tilted work plane and switch the work offset
+
+o<g68remap>sub
+M66 L0 E0  ; IMPORTANT, force sync, stop read ahead
+;Handle X,Y,Z words
+o100 if [EXISTS [#<X>]]
+o100 else
+   #<X> = 0
+o100 endif
+o101 if [EXISTS [#<Y>]]
+o101 else
+   #<Y> = 0
+o101 endif
+o102 if [EXISTS [#<Z>]]
+o102 else
+   #<Z> = 0
+o102 endif
+o103 if [EXISTS [#<B>]]
+o103 else
+   #<B> = 0
+o103 endif
+M429
+G0 B#<B>
+M66 L0 E0 ; IMPORTANT, force sync, stop read ahead
+;Note we can not pass XYZ words to an m-code so we send coords as ijk and handle it in remap.py
+M468 I#<X> J#<Y> K#<Z>  
+M66 L0 E0
+o<g68remap>endsub
+m2

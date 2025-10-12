@@ -1,0 +1,20 @@
+Experimental simulation of a 5axis Mill/Turn machine (eg MAZAK Integrex 200Y)
+
+Implemented Gcodes:
+
+- 'G67 B':          Moves the B-axis to the 'B'-word position and activates 'HALF TCP Lathe' mode.
+- 'G68 B (X Y Z)':  Moves the B-axis to the 'B'-word position then defines and activates a work plane perpendicular the this current tool orientation with the origin at the current WCS (optionally offset by any [X,Y,Z]-Words). This will change WCS to 'G59' where the transformed work offset values have been written to (ie the prior values stored in G59 will be lost!).
+- 'G68.1 (X Y Z)':  Defines and activates a work plane perpendicular the the current tool orientation with the origin at the current WCS (optionally offset by any [X,Y,Z]-Words). For change to WCS see 'G68'
+- 'G69':            Cancels the work plane set by 'G68' and (currently) switches back to 'G54'.
+
+NOTES:
+- This config defines the work-spindle as '$0' and the tool-spindle as '$1'. Example: 'M19 $1 R90' will orient the tool-spindle to 90°. (For real hardware it is recommended to use the spindle encoder-position instead of using 'spindle.1.orient-angle'.)
+- 'HALF/FULL TCP MILL/LATHE' modes include tracking of tool-spindle rotation.
+- 'HALF TCP MILL/LATHE' modes do not track the work spindle rotation, this is intended behavior.
+- 'FULL TCP MILL' mode will track all rotations.
+- Tool-offsets must only be changed in 'Identity' mode as it may cause sudden joint movements otherwise.
+- Lathe tools must only be used in 'Identity' or 'HALF TCP Lathe' mode.
+- Mill tools must only be used in 'HALF/FULL TCP Mill' or 'TWP' mode.
+- Due to easier abort handling we currently restrict the use of twp to G54 as LinuxCNC seems to revert to G54 as the default system.
+  Abort behavior can be handled by using a subroutine defined in the ini file under [RS274NGC]ON_ABORT_COMMAND'.
+- This config uses a customized version of the TWP remap and does (among other things) not implement virtual rotations (ie no optional 'R' word).

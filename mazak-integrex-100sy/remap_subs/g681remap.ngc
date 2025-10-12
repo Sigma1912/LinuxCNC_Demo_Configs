@@ -1,0 +1,24 @@
+; this is the wrapper remap to define the tilted work plane perpendicular to
+; the current tool orientation and switch the work offset
+
+o<g681remap>sub
+M66 L0 E0  ; IMPORTANT, force sync, stop read ahead
+;Handle X,Y,Z words
+o100 if [EXISTS [#<X>]]
+o100 else
+   #<X> = 0
+o100 endif
+o101 if [EXISTS [#<Y>]]
+o101 else
+   #<Y> = 0
+o101 endif
+o102 if [EXISTS [#<Z>]]
+o102 else
+   #<Z> = 0
+o102 endif
+M66 L0 E0
+;Note we can not pass XYZ words to an m-code so we send coords as ijk and handle it in remap.py
+M468 I#<X> J#<Y> K#<Z>  
+M66 L0 E0
+o<g681remap>endsub
+m2
