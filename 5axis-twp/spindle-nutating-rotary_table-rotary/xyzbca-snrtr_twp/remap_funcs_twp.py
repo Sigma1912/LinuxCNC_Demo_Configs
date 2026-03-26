@@ -31,10 +31,10 @@ config = configparser.ConfigParser(strict=False)
 # ingest the ini file
 config.read(inifile)
 
-## SPINDLE ROTARY JOINT LETTERS
-# spindle primary joint
+## ROTARY JOINT LETTERS
+# primary joint
 joint_letter_primary = (config['TWP']['PRIMARY']).capitalize()
-# spindle secondary joint (ie the one closer to the tool)
+# secondary joint (ie the one closer to the tool)
 joint_letter_secondary = (config['TWP']['SECONDARY']).capitalize()
 # get the MIN/MAX limits of the respective rotary joint letters
 category = 'AXIS_' +  joint_letter_primary
@@ -96,7 +96,7 @@ def kins_calc_transformation_matrix(theta_1, theta_2, virtual_rot, matrix_in, di
     r = Cs + Sv*Sv*(1-Cs)
     s = Cs + Cv*Cv*(1-Cs)
     t = Sv*Cv*(1-Cs) 
-    # define rotation matrix for the secondary spindle joint
+    # define rotation matrix for the secondary joint
     Rs=np.matrix([[     Cs, -Cv*Ss,  Sv*Ss, 0],
                   [  Cv*Ss,      r,      t, 0],
                   [ -Sv*Ss,      t,      s, 0],
