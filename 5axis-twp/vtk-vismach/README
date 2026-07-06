@@ -1,0 +1,164 @@
+While the general syntax structure from the current (opengl) version of vismach has been used as much as possible some changes were necessary:
+
+Same constructors used for static and as dynamic arguments.
+    Examples using the same constructor for a static rotation (ie using constants) and a dynamic rotation (ie using halpins):
+        Rotate([head],90,1,0,0)
+        Rotate([rotary_table_c],hal,'joint.4.pos-fb',0,0,-1)
+
+
+Using Local and global halpins:
+    'Local' pins are created inside the vismach model file,
+        example: 'c.newpin(("mypin", hal.HAL_FLOAT, hal.HAL_IN)'
+    They are accessed by passing the variable the halcomponent was assigned to at the beginning of the modelfile.
+        example: 'c = hal.component('vtk-dmu-160-p-gui')'
+    Example accessing a local halpin:
+            Translate([table],c,"mypin",0,0)
+
+    'Global' pins are created by components outside of the vismach model file,
+        example: "joint.0.pos-fb"
+    These are accessed by passing'hal'.
+    Example accessing global halpins:
+            Translate([table],hal,"joint.0.pos-fb",0,"joint.2.pos-fb")
+
+
+    Notes on using halpins in constructors:
+
+        - Each halpin can be passed with an optional scaling factor as a tuple: ("halpin", factor)
+          Example creating toolcylinder:
+                  CylinderZ(hal,"motion.tooloffset.z", ('halui.tool.diameter', 0.5))
+
+        - Only one type of halpin (ie either all global or all local) can be used in the same constructor.
+
+
+Model objects:
+    Box()
+        Box((comp),x1, y1, z1, x2, y2, z2)
+        Box((comp),xw, yw, zw)
+            # Creates a box centered on the origin
+            # Either specify the width in X and Y, and the height in Z or specify the two points across the diagonal
+    Sphere((comp),x_center, y_center, z_center, radius)
+    CylinderX((comp),length, radius)
+    CylinderY((comp),length, radius)
+    CylinderZ((comp),length, radius)
+    Line((comp),x_start, y_start, z_start, x_end, y_end, z_end)
+    Cylinder((comp),x_start, y_start, z_start, x_end, y_end, z_end, radius)
+    Arrow((comp),x_start, y_start, z_start, x_end, y_end, z_end, radius)
+    Axes((comp), scale)
+    Grid((comp), quadrant_size, line_spacing)
+        # Grid currently does not support the use of halpins as arguments
+    Plane((comp),quadrant_size)
+    Axes((comp), scale)
+        # Creates a tryhedrom with 3 arrows pointing in the pricipal directions (red X, green Y, blue Z)
+    ReadPolyData((comp), filename, path)
+        # ReadPolyData() will optionally accept a numeric 'filename' from a halpin.
+        # The file location is constructed as follows:
+                path + <halpin_value> + '.stl'
+        # Example loading 3d tool data dynamically on toolchange:
+                ReadPolyData(hal,"halui.tool.number", path_tool_stl)
+
+
+Model groups:
+    Each object of a model can optionally be assigned to a group. The assignment method can be called
+    on an existing object (2 lines of code)
+       example: 'work_piece = Box(600,600,600)'
+                'work_piece.set_group('work')'
+    or the object can be created and the 'set_group' method called in one line.
+       example2: 'ReadPolyData('work_piece.stl', path_stl).set_group('work')'
+    Vismach will automatically create a checkbutton to show or hide each group used in the model.
+
+
+
+Object manipulators:
+    Collection([parts])
+    Translate()
+        Translate([parts], (comp), x, y, z)
+        Translate([parts], (comp), x, y, z, vel_mode)
+            # If 'vel_mode' is set to True the 'x','y','z' values are interpreted as a velocity command
+        Rotate()
+        Rotate([parts], (comp), th, x, y, z)
+        Rotate([parts], (comp), th, x, y, z, vel_mode)
+            # If 'vel_mode' is set to True the 'th' value is interpreted as a velocity command
+    EulerRotate([parts], (comp), order, th1, th2, th3)
+    MatrixTransform([parts], (comp), xp, yp, zp, xx, xy, xz, zx, zy, zz)
+        # Creates a 4x4 transformation matrix of the form:
+            matrix = [[ xx, yx, zx, px],
+                      [ xy, yy, zy, py],
+                      [ xz, yz, zz, pz],
+                      [  0,  0,  0,  1]]
+        # Orientation vector Y is the cross product of the X and Z vectors: (zx,zy,zz) x (xx,xy,xz)
+    Scale()
+        Scale([parts],scale_x, scale_y, scale_z)
+        Scale([parts], (comp), const, var, scalefactor_if_true, scalefactor_if_false)
+            # Checks if 'const' or Any item in 'const' == 'var' and applies the scalefactor given if true or false
+            # This can be used to show or hide objects using scalefactors '1' and '0'
+                example: 'work_plane = Scale([work_plane],c,True,'twp_active',1,0)'
+    Color()
+        Color([parts], (comp), vtk_color, opacity)
+            example:  Color([arrow_x], 'red', 1)
+            # If only opacity is to be changed then vtk_color can be passed as None
+              example1: 'Color([work_plane_defined],c,None,0.5)'
+              example2: 'Color([work_plane_defined],c,None,('twp_defined',0.2))'
+
+        Color([parts], (comp), red, green, blue, opacity) # ie normalized R,G,B,A
+            example:  Color([work_plane_active],c,1,0,1,0.3)
+            # Color() applies changes to the leaf nodes of the model tree. Hence a color change to a part
+              created by a translation from another part will change the color of all instances of that part.
+            # If parts with identical geometry but different colors multiple instances of the geometry have to
+              be created.
+
+
+Textoverlay (HUD) constructor:
+    Hud() supports the following methods:
+        .add_txt(string, (tag))
+            # displays a string, optionally a tag or list of tags can be assigned
+            example1: 'myhud.add_txt('DMU-160-P')'
+            example2: 'myhud.add_txt('Kinematic Mode: IDENTITY',0)'
+                      'myhud.add_txt('Kinematic Mode: TCP',1)'
+
+        .add_pin(string, comp, pin, (tag))
+            # displays a formatted pin value (can be embedded in a string)
+            example: 'myhud.add_pin('{:6.3f}        {:6.3f}',c,['twp_xx','twp_zx'])'
+
+        .show_tags_if_pin_eq_val(tags, comp, pin, (val=True))
+            # shows all lines with the specified tags if the pin value = val
+
+        .show_tag_eq_pin_offs(comp, pin, (offs=0)):
+            # shows all lines with a tag equal to the pin value + offset
+            example: 'myhud.show_tag_eq_pin_offs(hal,'motion.switchkins-type')'
+
+        .hide_hud(comp, pin, (val=True)):
+            # hides the hud if the pin value is equal to val
+
+        # Multiple textoverlays can be used.
+        # Example creating two textoverlays, one static and one dynamic:
+            myhud1 = Hud(color='mint') # This will always be displayed
+            myhud2 = Hud(c,'kinstype_select',2,'tomato', 0.4) # This is displayed when 'kinstype_select' is 2
+
+
+Capturing tooltip and work
+    To record and display a backplot for the toolpath we need to embed two invisible objects into the model tree
+    'Capture('tool')' attached to the tooltip position will track the transformation matrix of the tool
+    'Capture('work')' does the same for the work piece.
+        # No backplot will be shown if either of these objects are missing in the model tree.
+
+
+Arguments calling main function for model construction:
+    Example:
+            main(options,   # options passed as arguments when starting vismach
+                 c,         # name of hal.component instance used in the model
+                 model,     # collection of all parts in the model tree
+                            # ie 'model = Collection([.....])'
+                 huds=[myhud1,myhud2],                      # optional text overlays
+                 window_width=1400, window_height=1000,     # optional window size
+                 window_title = 'Vtk_Vismach Tutorial')     # optional window_title
+
+
+Arguments starting vismach:
+    The following optional arguments are supported:
+        '--no-buttons'
+            # starts the vismach window without the side panel with the buttons
+        '--dark-theme'
+            # applies a dark theme to the vismach window (requires the python module 'pyqtdarktheme-fork')
+    Example: 'loadusr -W ../../vismach/vtk-dmu-160-p-gui.py --no-buttons --dark-theme
+
+
