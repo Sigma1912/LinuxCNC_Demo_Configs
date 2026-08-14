@@ -80,38 +80,13 @@ c.newpin('g92_z', hal.HAL_FLOAT, hal.HAL_IN)
 c.ready()
 
 
-# custom subclass used to rotate parts around the nutation axis
-class Nutate(Collection):
-    def update(self):
-        th,x,y,z = self.coords()
-        # override x,y,z
-        x = 0
-        y = sin(radians(c.nutation_angle))
-        z = cos(radians(c.nutation_angle))
-        self.transformation = vtk.vtkTransform()
-        self.transformation.PreMultiply()
-        self.transformation.RotateWXYZ(th,x,y,z)
-
-    def transform(self):
-        self.SetUserTransform(self.transformation)
-
-
-# Creates a 3d arrow pointing from (xs,ys,zs) to (xe,ye,ze)
-# where 'ye' depends on two hal values (ye = 'twp_oy_world' - 'joint.1.pos-fb')
-class CustomArrow(Arrow):
-    def coords(self):
-        xs, ys, zs, xe, ye, ze, radius = super().coords()
-        ye -= hal.get_value('joint.1.pos-fb')
-        return xs, ys, zs, xe, ye, ze, radius
-
-
 # Machine zero as measured from center surface of the rotary c table
 machine_zero_x = -1000
 machine_zero_y =  1000
 machine_zero_z =  1000
 
 # Create an indicator for the machine reference coordinates
-machine_coords = Axes(c,('scale_coords',200))
+machine_coords = Axes(c,'200*{scale_coords}')
 machine_coords = Translate([machine_coords], machine_zero_x, 0, machine_zero_z)
 
 # start toolside
@@ -119,12 +94,12 @@ machine_coords = Translate([machine_coords], machine_zero_x, 0, machine_zero_z)
 tooltip = Capture('tool')
 # Create an indicator for the tool coordinate system in IDENTITY mode
 tool_coords_idt = Scale([Axes(100)],hal,0,'motion.switchkins-type',1,0)
-tool_coords_idt = Translate([tool_coords_idt],hal,0,0,('motion.tooloffset.z',-1))
-tool_coords_idt = Translate([tool_coords_idt],c,0,('pivot_y',-1),('pivot_z',-1))
+tool_coords_idt = Translate([tool_coords_idt],hal,0,0,'-{motion.tooloffset.z}')
+tool_coords_idt = Translate([tool_coords_idt],c,0,'-{pivot_y}','-{pivot_z}')
 # Create an indicator for the tool coordinate system in TCP and TWP modes
 tool_coords_tcp_twp = Scale([Axes(100)],hal,[1,2],'motion.switchkins-type',1,0)
 tool_shape = Collection([
-                CylinderZ(hal,'motion.tooloffset.z', ('halui.tool.diameter', 0.5)),
+                CylinderZ(hal,'motion.tooloffset.z', '0.5*{halui.tool.diameter}'),
                 # this indicates the spindle nose when no tool-offset is active
                 CylinderZ(-0.1, 0),
                 ])
@@ -141,8 +116,8 @@ tool = Collection([
 #                    tool_stl,
                     ])
 tool = Rotate([tool],c,'virtual_rotation',0,0,1)
-tool = Translate([tool],hal,0,0,('motion.tooloffset.z',-1))
-tool = Translate([tool],c,0,('pivot_y',-1),('pivot_z',-1))
+tool = Translate([tool],hal,0,0,'-{motion.tooloffset.z}')
+tool = Translate([tool],c,0,'-{pivot_y}','-{pivot_z}')
 # create spindle head
 EGO_B = Color([EGO_B],0.7,0.7,0,1)
 # rotate the nutation joint to the nutation angle, 90° should have the nutation axis in the horizontal plane
@@ -157,7 +132,13 @@ spindle_assembly = Collection([
                    ])
 
 # create HAL-link for b-axis rotational joint'
-spindle_assembly = Nutate([spindle_assembly],hal,'joint.3.pos-fb',0,-1,0)
+spindle_assembly = Rotate([spindle_assembly],
+                hal,
+                'joint.3.pos-fb',
+                0,
+                'sin(radians( {vtk-dmu-160-p-gui.nutation_angle} ))',
+                'cos(radians( {vtk-dmu-160-p-gui.nutation_angle} ))'
+                )
 # Z carriage
 EGO_Z = Color([EGO_Z],1,0.5,0,1)
 EGO_Z = Translate([EGO_Z], 0, 0, -759.5)
@@ -196,7 +177,7 @@ twp_matrix = ('twp_xx', 'twp_xy', 'twp_xz',
 # TWP-Defined
 work_plane_defined = MatrixTransform([Grid(300, 10)],c,*twp_matrix)
 wcs2twp_defined = Arrow(c,0,0,0,'twp_ox','twp_oy','twp_oz',3)
-work_plane_coords_defined =  MatrixTransform([Axes(c,('scale_coords',300))],c,*twp_matrix)
+work_plane_coords_defined =  MatrixTransform([Axes(c,'300*{scale_coords}')],c,*twp_matrix)
 # create an indicator for the currently active G52/G92 offset for definded twp
 g92_twp_defined = MatrixTransform([Arrow(c,0,0,0,'g92_x','g92_y','g92_z',3)],c,*twp_matrix)
 g92_twp_defined = Translate([g92_twp_defined], machine_zero_x,  machine_zero_y, machine_zero_z)
@@ -206,13 +187,13 @@ work_plane_defined = Collection([work_plane_defined,
                                  work_plane_coords_defined,
                                  g92_twp_defined
                                  ])
-work_plane_defined = Color([work_plane_defined],c,None,('twp_defined',0.2))
+work_plane_defined = Color([work_plane_defined],c,None,'0.2*{twp_defined}')
 # TWP-Active
 work_plane_active =  MatrixTransform([Plane(300)],c,*twp_matrix)
 # for twp-active = true, we show the plane in pink
 work_plane_active = Color([work_plane_active],c,1,0,1,0.3)
 wcs2twp_active = Arrow(c,0,0,0,'twp_ox','twp_oy','twp_oz',3)
-work_plane_coords_active =  MatrixTransform([Axes(c,('scale_coords',300))],c,*twp_matrix)
+work_plane_coords_active =  MatrixTransform([Axes(c,'300*{scale_coords}')],c,*twp_matrix)
 # create an indicator for the currently active G52/G92 offset in active twp mode
 g92_twp_active = MatrixTransform([Arrow(c,0,0,0,'g92_x','g92_y','g92_z',3)],c,*twp_matrix)
 g92_twp_active = Translate([g92_twp_active], machine_zero_x,  machine_zero_y, machine_zero_z)
@@ -258,14 +239,18 @@ table = Collection([
         ])
 # Table moves with y axis
 #table = HalTranslate_orig([table],c,'axis_y',0,-1,0)
-table = Translate([table],hal,0,('joint.1.pos-fb',-1),0,'halui.flood.is-on').set_group('table')
+table = Translate([table],hal,0,'-{joint.1.pos-fb}',0,'halui.flood.is-on').set_group('table')
 # move table to y-home position
 table = Translate([table], 0, -machine_zero_y, 0)
 #/work-side
 
 # Create machine base
 base = Color([EGO_BC],0.3,0.3,0.3,1)
-wcs = CustomArrow(c,0,0,0,'twp_ox_world','twp_oy_world','twp_oz_world',3)
+wcs = Arrow(hal,0,0,0,
+            'vtk-dmu-160-p-gui.twp_ox_world',
+            '{vtk-dmu-160-p-gui.twp_oy_world} - {joint.1.pos-fb}',
+            'vtk-dmu-160-p-gui.twp_oz_world',
+            3)
 wcs = Translate([wcs], machine_zero_x, 0, machine_zero_z)
 model = Collection([
         machine_coords,

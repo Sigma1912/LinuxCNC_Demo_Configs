@@ -8,48 +8,63 @@ Same constructors used for static and as dynamic arguments.
 
 Using Local and global halpins:
     'Local' pins are created inside the vismach model file,
-        example: 'c.newpin(("mypin", hal.HAL_FLOAT, hal.HAL_IN)'
+        Example: 'c.newpin(("mypin", hal.HAL_FLOAT, hal.HAL_IN)'
     They are accessed by passing the variable the halcomponent was assigned to at the beginning of the modelfile.
-        example: 'c = hal.component('vtk-dmu-160-p-gui')'
+        Example: 'c = hal.component('vtk-dmu-160-p-gui')'
     Example accessing a local halpin:
             Translate([table],c,"mypin",0,0)
 
     'Global' pins are created by components outside of the vismach model file,
-        example: "joint.0.pos-fb"
+        Example: "joint.0.pos-fb"
     These are accessed by passing'hal'.
     Example accessing global halpins:
             Translate([table],hal,"joint.0.pos-fb",0,"joint.2.pos-fb")
 
+NOTE: - Only one type of halpin (ie either all global or all local) can be used in the same constructor.
+        If local AND global pins are to be used in the same constructor the local pins must be passed with the
+        hal prefix of the vismach simulation.
 
-    Notes on using halpins in constructors:
+            Translate([table],hal,"joint.0.pos-fb",0,"vtk-dmu-160-p-gui.mypin")
 
-        - Each halpin can be passed with an optional scaling factor as a tuple: ("halpin", factor)
-          Example creating toolcylinder:
-                  CylinderZ(hal,"motion.tooloffset.z", ('halui.tool.diameter', 0.5))
-
-        - Only one type of halpin (ie either all global or all local) can be used in the same constructor.
+Using expressions:
+    Expressions containing halpins can be passed as strings. Halpins used in expressions must be enclosed in curly brackets.
+    These expressions will have containing halpin values sampled and the expression evaluated on each update cycle.
+    Expressions may contain arithmetic and boolean operators as well as all functions provided by the python 'math' module.
+        Example 1:
+            tool = Translate([tool],hal,0,0,'-{motion.tooloffset.z}')
+        Example 2:
+            toolcylinder = CylinderZ(hal,'motion.tooloffset.z', '0.5*{halui.tool.diameter}')
+        Example 3:
+            spindle_assembly = Rotate([spindle_assembly],
+                            hal,
+                            'joint.3.pos-fb',
+                            0,
+                            'sin(radians( {vtk-dmu-160-p-gui.nutation_angle} ))',
+                            'cos(radians( {vtk-dmu-160-p-gui.nutation_angle} ))'
+                            )
+        Example 4:
+            base = Scale([base],c,True, '{scale_coords} < 1.2 or {scale_coords} > 1.9',1,0)
 
 
 Model objects:
-    Box()
+    * Box()
         Box((comp),x1, y1, z1, x2, y2, z2)
         Box((comp),xw, yw, zw)
             # Creates a box centered on the origin
             # Either specify the width in X and Y, and the height in Z or specify the two points across the diagonal
-    Sphere((comp),x_center, y_center, z_center, radius)
-    CylinderX((comp),length, radius)
-    CylinderY((comp),length, radius)
-    CylinderZ((comp),length, radius)
-    Line((comp),x_start, y_start, z_start, x_end, y_end, z_end)
-    Cylinder((comp),x_start, y_start, z_start, x_end, y_end, z_end, radius)
-    Arrow((comp),x_start, y_start, z_start, x_end, y_end, z_end, radius)
-    Axes((comp), scale)
-    Grid((comp), quadrant_size, line_spacing)
+    * Sphere((comp),x_center, y_center, z_center, radius)
+    * CylinderX((comp),length, radius)
+    * CylinderY((comp),length, radius)
+    * CylinderZ((comp),length, radius)
+    * Line((comp),x_start, y_start, z_start, x_end, y_end, z_end)
+    * Cylinder((comp),x_start, y_start, z_start, x_end, y_end, z_end, radius)
+    * Arrow((comp),x_start, y_start, z_start, x_end, y_end, z_end, radius)
+    * Grid((comp), quadrant_size, line_spacing)
         # Grid currently does not support the use of halpins as arguments
-    Plane((comp),quadrant_size)
-    Axes((comp), scale)
+    * Plane((comp),quadrant_size)
+    * Axes((comp), scale)
         # Creates a tryhedrom with 3 arrows pointing in the pricipal directions (red X, green Y, blue Z)
-    ReadPolyData((comp), filename, path)
+    * ReadPolyData((comp), filename, path)
         # ReadPolyData() will optionally accept a numeric 'filename' from a halpin.
         # The file location is constructed as follows:
                 path + <halpin_value> + '.stl'
@@ -60,17 +75,17 @@ Model objects:
 Model groups:
     Each object of a model can optionally be assigned to a group. The assignment method can be called
     on an existing object (2 lines of code)
-       example: 'work_piece = Box(600,600,600)'
+       Example 1: 'work_piece = Box(600,600,600)'
                 'work_piece.set_group('work')'
     or the object can be created and the 'set_group' method called in one line.
-       example2: 'ReadPolyData('work_piece.stl', path_stl).set_group('work')'
+       Example 2: 'ReadPolyData('work_piece.stl', path_stl).set_group('work')'
     Vismach will automatically create a checkbutton to show or hide each group used in the model.
 
 
 
 Object manipulators:
-    Collection([parts])
-    Translate()
+    * Collection([parts])
+    * Translate()
         Translate([parts], (comp), x, y, z)
         Translate([parts], (comp), x, y, z, vel_mode)
             # If 'vel_mode' is set to True the 'x','y','z' values are interpreted as a velocity command
@@ -78,29 +93,29 @@ Object manipulators:
         Rotate([parts], (comp), th, x, y, z)
         Rotate([parts], (comp), th, x, y, z, vel_mode)
             # If 'vel_mode' is set to True the 'th' value is interpreted as a velocity command
-    EulerRotate([parts], (comp), order, th1, th2, th3)
-    MatrixTransform([parts], (comp), xp, yp, zp, xx, xy, xz, zx, zy, zz)
+    * EulerRotate([parts], (comp), order, th1, th2, th3)
+    * MatrixTransform('[parts]','(comp)','xx','xy','xz','zx','zy','zz','px','py','pz')
         # Creates a 4x4 transformation matrix of the form:
             matrix = [[ xx, yx, zx, px],
                       [ xy, yy, zy, py],
                       [ xz, yz, zz, pz],
                       [  0,  0,  0,  1]]
         # Orientation vector Y is the cross product of the X and Z vectors: (zx,zy,zz) x (xx,xy,xz)
-    Scale()
+    * Scale()
         Scale([parts],scale_x, scale_y, scale_z)
         Scale([parts], (comp), const, var, scalefactor_if_true, scalefactor_if_false)
             # Checks if 'const' or Any item in 'const' == 'var' and applies the scalefactor given if true or false
             # This can be used to show or hide objects using scalefactors '1' and '0'
-                example: 'work_plane = Scale([work_plane],c,True,'twp_active',1,0)'
-    Color()
+                Example: 'work_plane = Scale([work_plane],c,True,'twp_active',1,0)'
+    * Color()
         Color([parts], (comp), vtk_color, opacity)
-            example:  Color([arrow_x], 'red', 1)
+            Example:  Color([arrow_x], 'red', 1)
             # If only opacity is to be changed then vtk_color can be passed as None
-              example1: 'Color([work_plane_defined],c,None,0.5)'
-              example2: 'Color([work_plane_defined],c,None,('twp_defined',0.2))'
+              Example1: 'Color([work_plane_defined],c,None,0.5)'
+              Example2: 'Color([work_plane_defined],c,None,('twp_defined',0.2))'
 
         Color([parts], (comp), red, green, blue, opacity) # ie normalized R,G,B,A
-            example:  Color([work_plane_active],c,1,0,1,0.3)
+            Example:  Color([work_plane_active],c,1,0,1,0.3)
             # Color() applies changes to the leaf nodes of the model tree. Hence a color change to a part
               created by a translation from another part will change the color of all instances of that part.
             # If parts with identical geometry but different colors multiple instances of the geometry have to
@@ -108,23 +123,23 @@ Object manipulators:
 
 
 Textoverlay (HUD) constructor:
-    Hud() supports the following methods:
+    * Hud() supports the following methods:
         .add_txt(string, (tag))
             # displays a string, optionally a tag or list of tags can be assigned
-            example1: 'myhud.add_txt('DMU-160-P')'
-            example2: 'myhud.add_txt('Kinematic Mode: IDENTITY',0)'
+            Example 1: 'myhud.add_txt('DMU-160-P')'
+            Example 2: 'myhud.add_txt('Kinematic Mode: IDENTITY',0)'
                       'myhud.add_txt('Kinematic Mode: TCP',1)'
 
         .add_pin(string, comp, pin, (tag))
             # displays a formatted pin value (can be embedded in a string)
-            example: 'myhud.add_pin('{:6.3f}        {:6.3f}',c,['twp_xx','twp_zx'])'
+            Example: 'myhud.add_pin('{:6.3f}        {:6.3f}',c,['twp_xx','twp_zx'])'
 
         .show_tags_if_pin_eq_val(tags, comp, pin, (val=True))
             # shows all lines with the specified tags if the pin value = val
 
         .show_tag_eq_pin_offs(comp, pin, (offs=0)):
             # shows all lines with a tag equal to the pin value + offset
-            example: 'myhud.show_tag_eq_pin_offs(hal,'motion.switchkins-type')'
+            Example: 'myhud.show_tag_eq_pin_offs(hal,'motion.switchkins-type')'
 
         .hide_hud(comp, pin, (val=True)):
             # hides the hud if the pin value is equal to val
@@ -162,3 +177,30 @@ Arguments starting vismach:
     Example: 'loadusr -W ../../vismach/vtk-dmu-160-p-gui.py --no-buttons --dark-theme
 
 
+Using custom subclasses:
+
+    Custom subclasses can be used to create new constructors and manipulators.
+    Example 1:
+        # custom subclass used to create a manipulator that rotates parts around an axis tilted by a local hal pin 'nutation_angle':
+        class Nutate(Collection):
+            def update(self):
+                th,x,y,z = self.coords()
+                # override x,y,z
+                x = 0
+                y = sin(radians(c.nutation_angle))
+                z = cos(radians(c.nutation_angle))
+                self.transformation = vtk.vtkTransform()
+                self.transformation.PreMultiply()
+                self.transformation.RotateWXYZ(th,x,y,z)
+
+            def transform(self):
+                self.SetUserTransform(self.transformation)
+
+    Example 2:
+        # Creates a 3d arrow pointing from (xs,ys,zs) to (xe,ye,ze)
+        # where ye = ye' - 'joint.1.pos-fb'
+        class CustomArrow(Arrow):
+            def coords(self):
+                xs, ys, zs, xe, ye, ze, radius = super().coords()
+                ye -= hal.get_value('joint.1.pos-fb')
+                return xs, ys, zs, xe, ye, ze, radius
