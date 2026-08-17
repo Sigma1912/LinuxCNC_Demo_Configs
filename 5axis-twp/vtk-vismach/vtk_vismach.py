@@ -135,7 +135,8 @@ class ArgsBase(object):
 # or specify the two points across the diagonal
 class Box(ArgsBase, vtk.vtkActor):
     def get_expected_args(self):
-        return [('(comp)','x1', 'y1', 'z1', 'x2', 'y2', 'z2'),('(comp)','xw', 'yw', 'zw')]
+        return [('(comp)','x1', 'y1', 'z1', 'x2', 'y2', 'z2'),
+                ('(comp)','xw', 'yw', 'zw')]
 
     def create(self, *args):
         self.cube = vtk.vtkCubeSource()
@@ -153,7 +154,7 @@ class Box(ArgsBase, vtk.vtkActor):
                 self.cube.SetYLength(yw)
                 self.cube.SetZLength(zw)
                 self.cube.Update()
-            if len(dims) == 6:
+            elif len(dims) == 6:
                 x1, y1, z1, x2, y2, z2 = self.coords()
                 if x1 > x2:
                     tmp = x1
@@ -179,10 +180,12 @@ class Box(ArgsBase, vtk.vtkActor):
 # the box is centered on the origin
 class Sphere(ArgsBase, vtk.vtkActor):
     def get_expected_args(self):
-        return ('(comp)','x', 'y', 'z', 'r')
+        return [('(comp)','r'),('(comp)','x_cntr', 'y_cntr', 'z_cntr', 'r')]
 
     def create(self, *args):
         self.sphere = vtk.vtkSphereSource()
+        self.sphere.SetThetaResolution(50)
+        self.sphere.SetPhiResolution(50)
         mapper = vtk.vtkPolyDataMapper()
         mapper.SetInputData(self.sphere.GetOutput())
         self.SetMapper(mapper)
@@ -190,7 +193,12 @@ class Sphere(ArgsBase, vtk.vtkActor):
     def update(self):
         if self.needs_updates or self.first_update:
             self.first_update = False
-            x, y, z, r = self.coords()
+            dims = self.coords()
+            if not isinstance(dims, list):
+                r = self.coords()
+                (x,y,z) = (0,0,0)
+            elif len(dims) == 4:
+                x, y, z, r = self.coords()
             self.sphere.SetRadius(r)
             self.sphere.Update()
             self.SetPosition(x,y,z)
@@ -199,25 +207,34 @@ class Sphere(ArgsBase, vtk.vtkActor):
 # Create cylinder along Y axis (default direction for vtkCylinderSource)
 class CylinderY(ArgsBase, vtk.vtkActor):
     def get_expected_args(self):
-        return ('(comp)','length', 'radius')
+        return [('(comp)','length', 'radius'),('(comp)','x_cntr', 'y_cntr', 'z_cntr','length', 'radius')]
 
     def create(self, *args):
-        self.resolution = 10
         self.cylinder = vtk.vtkCylinderSource()
+        self.cylinder.SetResolution(50)
         self.mapper = vtk.vtkPolyDataMapper()
         self.mapper.SetInputData(self.cylinder.GetOutput())
         self.SetMapper(self.mapper)
 
+    def get_coords(self):
+        dims = self.coords()
+        if len(dims) == 2:
+            length, radius = self.coords()
+            x,y,z = 0,0,0
+        elif len(dims) == 5:
+            x, y, z, length, radius = self.coords()
+        return x,y,z,length,radius
+
     def update(self):
         if self.needs_updates or self.first_update:
             self.first_update = False
-            length, radius = self.coords()
+            x,y,z,length,radius = self.get_coords()
             self.cylinder.SetRadius(radius)
             self.cylinder.SetHeight(abs(length))
-            self.cylinder.SetResolution(self.resolution)
             self.SetUserTransform(vtk.vtkTransform())
             self.GetUserTransform().Translate(0,length/2,0)
             self.cylinder.Update()
+            self.SetPosition(x,y,z)
 
 
 # Create cylinder along Z axis
@@ -229,12 +246,13 @@ class CylinderZ(CylinderY):
     def update(self):
         if self.needs_updates or self.first_update:
             self.first_update = False
-            length, radius = self.coords()
+            x,y,z,length,radius = self.get_coords()
             self.cylinder.SetRadius(radius)
             self.cylinder.SetHeight(abs(length))
             self.SetUserTransform(vtk.vtkTransform())
             self.GetUserTransform().Translate(0,0,length/2)
             self.cylinder.Update()
+            self.SetPosition(x,y,z)
 
 
 # Create cylinder along X axis
@@ -246,12 +264,13 @@ class CylinderX(CylinderY):
     def update(self):
         if self.needs_updates or self.first_update:
             self.first_update = False
-            length, radius = self.coords()
+            x,y,z,length,radius = self.get_coords()
             self.cylinder.SetRadius(radius)
             self.cylinder.SetHeight(abs(length))
             self.SetUserTransform(vtk.vtkTransform())
             self.GetUserTransform().Translate(length/2,0,0)
             self.cylinder.Update()
+            self.SetPosition(x,y,z)
 
 
 # draw a line from one point to another
@@ -621,6 +640,12 @@ class Color(ArgsBase,vtk.vtkAssembly):
             opacity_only = False
             if isinstance(args[0],str):  # ie (color, a) has been passed
                 color, opacity = args
+                try: # try to conver hex RGB to dec RGB
+                    h = color.lstrip('#')
+                    (r,g,b) = tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+                    color = (r/255, g/255, b/255)
+                except Exception as e:
+                    pass
             elif args[0] == None: # None instead of color string passed
                 opacity = args[1]
                 opacity_only = True
@@ -773,7 +798,7 @@ class _Plotter(vtk.vtkActor):
         self.color = color          # color of backplot in eiter nomalized RGB or one of vtkNamedColors
         self.tool_tracker = None    # Capture object with '.matrix' holding the current transformation tool->world
         self.work_tracker = None    # Capture object with '.matrix' holding the current transformation work->world
-        self.tool2work = vtk.vtkTransform()
+        self.work2tool = vtk.vtkTransform()
         self.get_trackers(model)     # find the Capture('tool') and Capture('work') objects in the model
         # We initialize at the origin, this is cleared and set to the actual
         # machine reference position during the 1. update loop
@@ -850,10 +875,10 @@ class _Plotter(vtk.vtkActor):
         self.lines.Modified()
         self.SetUserTransform(vtk.vtkTransform())
         self.GetUserTransform().Concatenate(work2world)
-        # Calculate tool2work to experiment
-        self.tool2work = vtk.vtkTransform()
-        self.tool2work.Concatenate(world2work)
-        self.tool2work.Concatenate(tool2world) # tool position [0,0,0] > Work [x,y,z]
+        # Calculate work2tool to experiment
+        self.work2tool = vtk.vtkTransform()
+        self.work2tool.Concatenate(world2work)
+        self.work2tool.Concatenate(tool2world) # tool position [0,0,0] > Work [x,y,z]
 
 
 # create (invisible) actor that can be used to track combined transformation to world coordinates
@@ -1111,6 +1136,8 @@ class MainWindow(Qt.QMainWindow):
                                 pin_updater = constructor(self.comp_prefix, pin)
                                 pin_updater(initval)
                                 self.spinVal.valueChanged.connect(pin_updater)
+                                if len(item) > 4:
+                                    self.spinVal.setStyleSheet('background-color: ' + item[4] +';')
                                 grpValSpinRowLyt.addWidget(self.spinVal)
                                 grpValSpinLyt.addLayout(grpValSpinRowLyt)
 
@@ -1287,21 +1314,21 @@ def main(argv_options, comp, model, huds=None, guivars=None,
         get_actors_to_update(model)
         # Update backplot
         if backplot.ready:
-            # Update tool->world matrix
-            t2w = backplot.tool2work.GetMatrix()
-            r1=('{:6.3f} {:6.3f} {:6.3f} {:9.3f}'.format(t2w.GetElement(0,0), t2w.GetElement(0,1), t2w.GetElement(0,2), t2w.GetElement(0,3)))
-            r2=('{:6.3f} {:6.3f} {:6.3f} {:9.3f}'.format(t2w.GetElement(1,0), t2w.GetElement(1,1), t2w.GetElement(1,2), t2w.GetElement(1,3)))
-            r3=('{:6.3f} {:6.3f} {:6.3f} {:9.3f}'.format(t2w.GetElement(2,0), t2w.GetElement(2,1), t2w.GetElement(2,2), t2w.GetElement(2,3)))
-            t2w_matrix_text = '\nTool -> Work Transformation:\n'+'   X      Y      Z      Pos\n'+r1+'\n'+r2+'\n'+r3
+            # Update work->tool matrix
+            w2t = backplot.work2tool.GetMatrix()
+            r1=('{:6.3f} {:6.3f} {:6.3f} {:9.3f}'.format(w2t.GetElement(0,0), w2t.GetElement(0,1), w2t.GetElement(0,2), w2t.GetElement(0,3)))
+            r2=('{:6.3f} {:6.3f} {:6.3f} {:9.3f}'.format(w2t.GetElement(1,0), w2t.GetElement(1,1), w2t.GetElement(1,2), w2t.GetElement(1,3)))
+            r3=('{:6.3f} {:6.3f} {:6.3f} {:9.3f}'.format(w2t.GetElement(2,0), w2t.GetElement(2,1), w2t.GetElement(2,2), w2t.GetElement(2,3)))
+            w2t_matrix_text = '\nWork -> Tool Transformation:\n'+'   X      Y      Z      Pos\n'+r1+'\n'+r2+'\n'+r3
             backplot.update()
         else:
-            t2w_matrix_text = ''
+            w2t_matrix_text = ''
             backplot.update()
         # Update HUD
         if huds:
             for hud in huds:
                 if backplot.ready:
-                    hud.extra_text = t2w_matrix_text
+                    hud.extra_text = w2t_matrix_text
                 hud.update()
         # With the sidepanel we have some more things to update depending on the button states
         if not mainWindow.no_buttons:

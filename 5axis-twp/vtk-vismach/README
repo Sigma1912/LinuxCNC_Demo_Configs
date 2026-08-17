@@ -47,23 +47,42 @@ Using expressions:
 
 
 Model objects:
-    * Box()
+
+    * Box()  # Either specify the width in X and Y, and the height in Z or specify the two points across the diagonal
         Box((comp),x1, y1, z1, x2, y2, z2)
-        Box((comp),xw, yw, zw)
-            # Creates a box centered on the origin
-            # Either specify the width in X and Y, and the height in Z or specify the two points across the diagonal
-    * Sphere((comp),x_center, y_center, z_center, radius)
-    * CylinderX((comp),length, radius)
-    * CylinderY((comp),length, radius)
-    * CylinderZ((comp),length, radius)
-    * Line((comp),x_start, y_start, z_start, x_end, y_end, z_end)
+        Box((comp),xw, yw, zw)                                          # Creates a box centered on the origin
+
+    * Sphere()
+        Sphere((comp),radius)                                           # center position is set to (0,0,0)
+        Sphere((comp),x_center, y_center, z_center, radius)
+
+    * CylinderX()
+        CylinderX((comp),length, radius)                                # center position is set to (0,0,0)
+        CylinderX((comp),x_center, y_center, z_center, length, radius)
+
+    * CylinderY()
+        CylinderY((comp),length, radius)                                # center position is set to (0,0,0)
+        CylinderY((comp),x_center, y_center, z_center, length, radius)
+
+    * CylinderZ()
+        CylinderZ((comp),length, radius)                                # center position is set to (0,0,0)
+        CylinderZ((comp),x_center, y_center, z_center, length, radius)
+
     * Cylinder((comp),x_start, y_start, z_start, x_end, y_end, z_end, radius)
+
+    * Line((comp),x_start, y_start, z_start, x_end, y_end, z_end)
+
     * Arrow((comp),x_start, y_start, z_start, x_end, y_end, z_end, radius)
+
     * Grid((comp), quadrant_size, line_spacing)
+
         # Grid currently does not support the use of halpins as arguments
+
     * Plane((comp),quadrant_size)
+
     * Axes((comp), scale)
         # Creates a tryhedrom with 3 arrows pointing in the pricipal directions (red X, green Y, blue Z)
+
     * ReadPolyData((comp), filename, path)
         # ReadPolyData() will optionally accept a numeric 'filename' from a halpin.
         # The file location is constructed as follows:
