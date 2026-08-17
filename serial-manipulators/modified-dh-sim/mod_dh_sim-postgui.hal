@@ -1,0 +1,13 @@
+net j0 joint.0.pos-fb mod-dh-sim-gui.joint0
+net j1 joint.1.pos-fb mod-dh-sim-gui.joint1
+net j2 joint.2.pos-fb mod-dh-sim-gui.joint2
+net j3 joint.3.pos-fb mod-dh-sim-gui.joint3
+net j4 joint.4.pos-fb mod-dh-sim-gui.joint4
+net j5 joint.5.pos-fb mod-dh-sim-gui.joint5
+
+net :identity-button   <= pyvcp.identity-button   => halui.mdi-command-00
+net :genserkins-button <= pyvcp.genserkins-button => halui.mdi-command-01
+
+net :kinstype.is-0   <= kinstype.is-0         => pyvcp.multilabel.0.legend0
+net :kinstype.is-1   <= kinstype.is-1         => pyvcp.multilabel.0.legend1
+

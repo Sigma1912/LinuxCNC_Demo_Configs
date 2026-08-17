@@ -1,0 +1,34 @@
+# standard DH-parameters example
+
+setp three21kins.A1 85
+setp three21kins.A2 380
+setp three21kins.A3 100
+setp three21kins.D1 350
+setp three21kins.D2 0
+setp three21kins.D3 0
+setp three21kins.D4 425
+setp three21kins.D6 85
+
+
+
+
+#setp genserkins.A-1 85
+#setp genserkins.A-2 380
+#setp genserkins.A-3 100
+#setp genserkins.A-4 0
+#setp genserkins.A-5 0
+
+#setp genserkins.ALPHA-0 0
+#setp genserkins.ALPHA-1 -1.570796326
+#setp genserkins.ALPHA-2 0
+#setp genserkins.ALPHA-3 -1.570796326
+#setp genserkins.ALPHA-4 1.570796326
+#setp genserkins.ALPHA-5 -1.570796326
+
+#setp genserkins.D-0 350
+#setp genserkins.D-1 0
+#setp genserkins.D-2 0
+#setp genserkins.D-3 425
+#setp genserkins.D-4 0
+#setp genserkins.D-5 85
+

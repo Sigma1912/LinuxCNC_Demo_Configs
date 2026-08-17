@@ -1,0 +1,34 @@
+# Halshow settings
+# This file is generated automatically.
+wm geometry . 700x789+75+49
+placeFrames 0.3
+set ::ratio 0.3
+set ::old_w_leftf 160
+set ::watchlist {
+    pin+genserkins.A-0
+    pin+genserkins.A-1
+    pin+genserkins.A-2
+    pin+genserkins.A-3
+    pin+genserkins.A-4
+    pin+genserkins.A-5
+    pin+genserkins.D-0
+    pin+genserkins.D-1
+    pin+genserkins.D-2
+    pin+genserkins.D-3
+    pin+genserkins.D-4
+    pin+genserkins.D-5
+    pin+genserkins.ALPHA-0
+    pin+genserkins.ALPHA-1
+    pin+genserkins.ALPHA-2
+    pin+genserkins.ALPHA-3
+    pin+genserkins.ALPHA-4
+    pin+genserkins.ALPHA-5
+}
+set ::workmode watchhal
+set ::watchInterval 100
+set ::col1_width 100
+set ::ffmts 
+set ::ifmts 
+set ::alwaysOnTop 0
+set ::autoSaveWatchlist 1
+set ::separateParams 0

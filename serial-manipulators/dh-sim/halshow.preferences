@@ -1,0 +1,24 @@
+# Halshow settings
+# This file is generated automatically.
+wm geometry . 700x475+745+234
+placeFrames 0.3
+set ::ratio 0.3
+set ::old_w_leftf 160
+set ::watchlist {
+    pin+three21kins.A1
+    pin+three21kins.A2
+    pin+three21kins.A3
+    pin+three21kins.D1
+    pin+three21kins.D2
+    pin+three21kins.D3
+    pin+three21kins.D4
+    pin+three21kins.D6
+}
+set ::workmode watchhal
+set ::watchInterval 100
+set ::col1_width 100
+set ::ffmts 
+set ::ifmts 
+set ::alwaysOnTop 0
+set ::autoSaveWatchlist 1
+set ::separateParams 0
